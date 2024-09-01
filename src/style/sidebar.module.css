@@ -1,0 +1,75 @@
+.expend-side {
+  --sb-width: 12.5rem;
+}
+
+aside {
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  padding: 1rem;
+  width: var(--sb-width);
+  color: white;
+  background-color: rgb(29, 29, 29);
+  transition: width 0.3s;
+}
+.container:not(.expend-side) {
+  --sb-width: 5rem;
+}
+nav {
+  height: 100%;
+}
+nav ul {
+  list-style: none;
+  display: flex;
+  height: 100%;
+  flex-flow: column;
+  gap: 1.5rem;
+}
+nav li:last-child {
+  margin-top: auto;
+}
+nav a {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  color: white;
+  text-decoration: none;
+  line-height: 1;
+  padding: 10px 14px;
+  transition: background-color 0.4s ease-in-out, color 0.4s ease-in-out;
+}
+nav a.active,
+nav a:hover,
+nav a:focus-visible {
+  outline: none;
+  color: black;
+  background-color: white;
+  border-radius: 5px;
+}
+nav a span {
+  opacity: 0;
+  font-size: 0.875rem;
+  visibility: hidden;
+  padding-left: 10px;
+}
+.expend-side nav a span {
+  opacity: 1;
+  visibility: visible;
+  padding-left: 10px;
+}
+.collapse-btn {
+  transition: transform 0.3s;
+}
+.expend-side .collapse-btn {
+  transform: rotate(180deg);
+}
+main {
+  flex-grow: 1;
+  margin-left: var(--sb-width);
+  padding: 1rem;
+  /* padding-left: 7rem;
+    padding-right: 2rem; */
+  transition: margin-left 0.5 ease-in-out;
+}

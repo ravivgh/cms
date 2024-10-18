@@ -20,7 +20,7 @@ import { IoIosArrowRoundForward } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import ClipLoader from "react-spinners/ClipLoader";
 import validatestafflogin from "@/scripts/validate_staff_login";
-import axios from 'axios';
+import axios from "axios";
 
 const StaffLogin = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -30,59 +30,66 @@ const StaffLogin = () => {
   const [otp, setOtp] = useState("");
   const [isOtpValid, setIsOtpValid] = useState(false);
   const [email, setEmail] = useState("");
+  const [isEmailValid, setIsEmailValid] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email regex
+    return emailRegex.test(email);
+  };
+
+  // Handle email input changes
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsEmailValid(validateEmail(newEmail));
+    setButtondisable(!email); // Validate email
+  };
+
   const [loading, setLoading] = useState(false);
   const [profilePicupload, isProfilePicupload] = useState(false);
-  const [isButtonDisabled,setButtondisable] = useState(true)
+  const [isButtonDisabled, setButtondisable] = useState(true);
+  const [isLoaderVisible, setLoaderVisible] = useState(false);
   const navigate = useNavigate();
-  
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-    setButtondisable(!email)
-  };
-  const handleOtpChange = (otp) => {
-    let matchotp = localStorage.getItem('otp');
-    if(otp == matchotp){
-      setIsOtpValid(true)
-    }
-    else{
-      setIsOtpValid(false)
-    }
 
-   
+  // const handleEmailChange = (e) => {
+  //   setEmail(e.target.value);
+  //   setButtondisable(!email)
+  // };
+  const handleOtpChange = (otp) => {
+    let matchotp = localStorage.getItem("otp");
+    if (otp == matchotp) {
+      setIsOtpValid(true);
+    } else {
+      setIsOtpValid(false);
+    }
   };
   const handleDrawerToggle = async (e) => {
     e.preventDefault();
-    if(await validatestafflogin(email)){
-    setIsDrawerOpen((prev) => !prev);
-    }
-    else{
-      alert("Admin with Email Not Found")
+    if (await validatestafflogin(email)) {
+      setIsDrawerOpen((prev) => !prev);
+    } else {
+      alert("Admin with Email Not Found");
       setIsDrawerOpen(false);
-      
-
     }
   };
   const handleVerify = () => {
-    
-    if(isOtpValid){
-      let profile_pic = localStorage.getItem("profile_pic")
-      if(profile_pic == "true"){
-        setLoading(true)
-          setTimeout(() => {
-            setLoading(false)
-            navigate("/facultydashboard");
-          }, 3000);
-        
-
-      }
-      else{
+    if (isOtpValid) {
+      let profile_pic = localStorage.getItem("profile_pic");
+      setLoaderVisible(true);
+      if (profile_pic == "true") {
+        setLoading(true);
+        setTimeout(() => {
+          setLoading(false);
+          setLoaderVisible(false);
+          navigate("/facultydashboard");
+        }, 3000);
+      } else {
+        setLoaderVisible(false);
         setStep(2);
       }
-      
-    }
-    else {
+    } else {
       alert("Please enter a valid OTP");
     }
   };
@@ -90,59 +97,56 @@ const StaffLogin = () => {
   const handleOpenCamera = () => {
     setIsCameraOpen(true);
   };
-  
 
-  const  dataURItoBlob = (dataUri) => {
-    const byteString = atob(dataUri.split(',')[1]);
-    const mimeString = dataUri.split(',')[0].split(':')[1].split(';')[0];
+  const dataURItoBlob = (dataUri) => {
+    const byteString = atob(dataUri.split(",")[1]);
+    const mimeString = dataUri.split(",")[0].split(":")[1].split(";")[0];
     const ab = new ArrayBuffer(byteString.length);
     const ia = new Uint8Array(ab);
     for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
+      ia[i] = byteString.charCodeAt(i);
     }
     return new Blob([ab], { type: mimeString });
-}
+  };
 
   const handleTakePhoto = async (dataUri) => {
     setProfilePicture(dataUri);
     setIsCameraOpen(false);
     //console.log(dataUri);
-    
-    
+  };
 
-    
-}
-
-const upload_pic = async () => {
-const imageBlob = dataURItoBlob(profilePicture);
-const formData = new FormData();
-    formData.append('file', imageBlob, localStorage.getItem('staff_id') + ".png"); 
-    formData.append('picname', localStorage.getItem('staff_id') + ".png");         
-    formData.append('staffid', localStorage.getItem('staff_id'));
-try {
-        const response = await axios.post('http://localhost:5472/services/staffpicupload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-
-        if 
-        (response.status === 200) {
-            isProfilePicupload(true)
-            return true
-        } else {
-          isProfilePicupload(false)    
-          return false       
+  const upload_pic = async () => {
+    const imageBlob = dataURItoBlob(profilePicture);
+    const formData = new FormData();
+    formData.append(
+      "file",
+      imageBlob,
+      localStorage.getItem("staff_id") + ".png"
+    );
+    formData.append("picname", localStorage.getItem("staff_id") + ".png");
+    formData.append("staffid", localStorage.getItem("staff_id"));
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/staffpicupload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
+      );
+
+      if (response.status === 200) {
+        isProfilePicupload(true);
+        return true;
+      } else {
+        isProfilePicupload(false);
+        return false;
+      }
     } catch (error) {
-        console.error('Error uploading image:', error);
+      console.error("Error uploading image:", error);
     }
-
-
-
-}
-
-  
+  };
 
   const fileInputRef = useRef(null);
   const handleChooseFileClick = () => {
@@ -228,12 +232,16 @@ try {
                     value={email}
                     onChange={handleEmailChange}
                   />
-                  
+                  {!isEmailValid && email !== "" && (
+                    <p className="text-red-500 text-sm mt-1">
+                      Please enter a valid email address.
+                    </p>
+                  )}
                   <div className="btn pt-10 flex relative items-center">
                     <Button
                       className="w-full p-6"
                       onClick={handleDrawerToggle}
-                      disabled={isButtonDisabled}
+                      disabled={!isEmailValid}
                     >
                       Submit
                     </Button>
@@ -362,7 +370,11 @@ try {
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    Verify
+                    {isLoaderVisible ? (
+                      <ClipLoader size={20} color={"#fff"} />
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -435,7 +447,6 @@ try {
                                 ref={fileInputRef}
                                 style={{ display: "none" }}
                               />
-
                             </>
                           )}
                         </div>

@@ -10,7 +10,7 @@ const MainAttendanceSheet = () => {
   };
   return (
     <div className="flex">
-      <SessionRedirect/>
+      <SessionRedirect />
       <FacultySidebar
         isSidebarOpen={isSidebarOpen}
         onToggle={handleSidebarToggle}
@@ -23,7 +23,23 @@ const MainAttendanceSheet = () => {
           width: isSidebarOpen ? "calc(100% - 12.5rem)" : "calc(100% - 5rem)",
         }}
       >
-        <Attendance />
+        <div className="bg-[#f7f7f7] p-10">
+          <div className="text-black text-2xl">
+            <h1>Attendance Sheet</h1>
+          </div>
+          <hr
+            className="mx-auto bg-[#0000003b] my-2 rounded-sm"
+            style={{
+              width: "100%",
+              height: "1px",
+              color: "white",
+              borderWidth: 0,
+              marginBottom: "50px",
+              marginTop: "50px",
+            }}
+          />
+          <Attendance />
+        </div>
       </main>
     </div>
   );

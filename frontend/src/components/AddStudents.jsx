@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { IoIosCheckmarkCircleOutline } from "react-icons/io";
 import {
   Sheet,
   SheetContent,
@@ -65,25 +65,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const Cell = ({ row, setEditFormData }) => {
+const Cell = ({ row, setEditFormData, onDelete }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const handleEdit = () => {
-    setEditFormData(row.original);  
+    setEditFormData(row.original);
     setIsSheetOpen(true);
   };
   const deleterecord = async (row) => {
     try {
-      const response = await deleteStudent(row.original._id); 
-  
+      const response = await deleteStudent(row.original._id);
+
       if (response) {
-        
-        
-        setIsAlertOpen(false); 
+        setIsAlertOpen(false);
+        onDelete(response);
       }
     } catch (error) {
       console.error(error);
-      
     }
   };
 
@@ -121,8 +119,7 @@ const Cell = ({ row, setEditFormData }) => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                deleterecord(row)
-                
+                deleterecord(row);
               }}
             >
               Delete
@@ -135,8 +132,8 @@ const Cell = ({ row, setEditFormData }) => {
 };
 
 export function AddStudents() {
-  const [data, setData] = useState([]);  // State for table data
-  const [editFormData, setEditFormData] = useState(null);  // Data for editing the form
+  const [data, setData] = useState([]); // State for table data
+  const [editFormData, setEditFormData] = useState(null); // Data for editing the form
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -150,39 +147,112 @@ export function AddStudents() {
   const [subject, setSubject] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [dob, setDob] = useState("");
-  const [student,setStudentData] = useState({});
-  
-  
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [student, setStudentData] = useState({});
+  const [isNameValid, setIsNameValid] = useState(true);
+  const [isEmailValid, setIsEmailValid] = useState(true);
+  const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(true);
+  const [isSectionValid, setIsSectionValid] = useState(true);
+  const [isClassValid, setIsClassValid] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState("");
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
-  
-  const addstudent = () =>{
-    let response = insertStudent(name,Class,section,dob,email,phoneNumber)
-    if(response){
-      setIsSheetOpen(false)
+  const validatePhoneNumber = (phoneNumber) => {
+    const phoneRegex = /^\d{10}$/;
+    return phoneRegex.test(phoneNumber);
+  };
+
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsEmailValid(validateEmail(newEmail));
+  };
+
+  const handlePhoneNumberChange = (e) => {
+    const newPhoneNumber = e.target.value;
+    setPhoneNumber(newPhoneNumber);
+    setIsPhoneNumberValid(validatePhoneNumber(newPhoneNumber));
+  };
+  const validateName = (name) => {
+    const nameRegex = /^[A-Za-z\s]+$/;
+    return nameRegex.test(name);
+  };
+
+  const handleNameChange = (e) => {
+    const newName = e.target.value;
+    setName(newName);
+    setIsNameValid(validateName(newName));
+  };
+  const validateSection = (section) => {
+    const sectionRegex = /^[A-Za-z\s]+$/;
+    return sectionRegex.test(section);
+  };
+
+  const handleSectionChange = (e) => {
+    const newSection = e.target.value;
+    setSection(newSection);
+    setIsSectionValid(validateSection(newSection));
+  };
+  const validateClass = (Class) => {
+    const classRegex = /^[A-Za-z\s]+$/;
+    return classRegex.test(Class);
+  };
+  const handleSave = () => {
+    setDialogMessage("Record added successfully!");
+    setIsDialogOpen(true);
+    setIsSheetOpen(false);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+  };
+  const handleClassChange = (e) => {
+    const newClass = e.target.value;
+    setClass(newClass);
+    setIsClassValid(validateClass(newClass));
+  };
+  const addstudent = async () => {
+    try {
+      let response = await insertStudent(
+        name,
+        Class,
+        section,
+        dob,
+        email,
+        phoneNumber
+      );
+      if (response) {
+        setIsSheetOpen(false);
+
+        setRefreshCount((p) => p + 1);
+      } else {
+        console.log("Error with the script");
+      }
+    } catch (error) {
+      console.log(error);
     }
-    else{
-      console.log("Error with the script")
-    }
-  }
-  
+  };
+
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
-        const response = await axios.post('http://localhost:5472/services/retrievestudents');
-        setStudentData(response.data);
-        
+        const response = await axios.post(
+          "http://localhost:5472/services/retrievestudents"
+        );
+        debugger;
+        setStudentData(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
+        setStudentData(Array.isArray(response.data) ? response.data : []);
         console.error(error);
-        
       }
     };
 
-    
-
-
     fetchStudentData();
-  }, []);
-
+  }, [refreshCount]);
 
   const columns = [
     {
@@ -202,22 +272,30 @@ export function AddStudents() {
           </Button>
         );
       },
-      cell: ({ row }) => <div className="sentencecase">{row.getValue("Student_Name")}</div>,
+      cell: ({ row }) => (
+        <div className="sentencecase">{row.getValue("Student_Name")}</div>
+      ),
     },
     {
       accessorKey: "Class",
       header: "Class",
     },
-  
+
     {
       id: "actions",
       enableHiding: false,
-      cell: ({ row }) => <Cell row={row} setEditFormData={setEditFormData} />,
+      cell: ({ row }) => (
+        <Cell
+          row={row}
+          setEditFormData={setEditFormData}
+          onDelete={() => setRefreshCount((p) => p + 1)}
+        />
+      ),
     },
   ];
 
   const table = useReactTable({
-    data:student,
+    data: student,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -277,7 +355,7 @@ export function AddStudents() {
           <Button onClick={() => setIsSheetOpen(true)}>Add +</Button>
         </div>
       </div>
-      
+
       {/* Data Table */}
       <div className="rounded-md border">
         <Table>
@@ -308,71 +386,143 @@ export function AddStudents() {
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No results.
                 </TableCell>
               </TableRow>
             )}
-          
           </TableBody>
         </Table>
       </div>
-        
+
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-[425px]" side="right">
           <SheetHeader>
             <SheetTitle>Add Student</SheetTitle>
-            <SheetDescription>
-              Add Student
-            </SheetDescription>
+            <SheetDescription>Add Student</SheetDescription>
           </SheetHeader>
           <div className="space-y-2 py-4">
             <TextField
               label="Student Name"
-              onChange={(e) => setName(e.target.value)}
+              value={name}
+              onChange={handleNameChange}
+              placeholder="Enter here"
+              error={!isNameValid && name !== ""}
+              helperText={
+                !isNameValid && name !== "" ? "Only letters are allowed" : ""
+              }
               fullWidth
             />
             <TextField
-              label = "Date of Birth"
-              type = "date"
+              label="Date of Birth"
+              type="date"
               onChange={(e) => setDob(e.target.value)}
               fullWidth
             />
-            
+
             <TextField
               label="Class"
-              onChange={(e) => setClass(e.target.value)}
+              value={Class}
+              onChange={handleClassChange}
+              placeholder="Enter here"
+              error={!isClassValid && Class !== ""}
+              helperText={
+                !isClassValid && Class !== "" ? "Only letters are allowed" : ""
+              }
               fullWidth
             />
             <TextField
               label="Section"
-              onChange={(e) => setSection(e.target.value)}
+              value={section}
+              onChange={handleSectionChange}
+              placeholder="Enter here"
+              error={!isSectionValid && section !== ""}
+              helperText={
+                !isSectionValid && section !== ""
+                  ? "Only letters are allowed"
+                  : ""
+              }
               fullWidth
             />
-            
+
             <TextField
               label="Student Email"
-              onChange={(e) => setEmail(e.target.value)}
+              value={email}
+              onChange={handleEmailChange}
+              placeholder="Enter here"
+              error={!isEmailValid && email !== ""}
+              helperText={
+                !isEmailValid && email !== "" ? "Invalid email format" : ""
+              }
               fullWidth
             />
             <TextField
               label="Phone Number"
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              value={phoneNumber}
+              onChange={handlePhoneNumberChange}
+              placeholder="Enter here"
+              error={!isPhoneNumberValid && phoneNumber !== ""}
+              helperText={
+                !isPhoneNumberValid && phoneNumber !== ""
+                  ? "Phone number must be exactly 10 digits"
+                  : ""
+              }
               fullWidth
             />
           </div>
-          <Button type = "Submit" className="w-full" onClick={addstudent}>
+          <Button
+            type="Submit"
+            className="w-full"
+            onClick={() => {
+              addstudent();
+              handleSave();
+            }}
+            disabled={
+              !isEmailValid ||
+              !isPhoneNumberValid ||
+              email === "" ||
+              phoneNumber === "" ||
+              !isNameValid ||
+              name === "" ||
+              !isClassValid ||
+              Class === "" ||
+              !isSectionValid ||
+              section === ""
+            }
+          >
             Add
           </Button>
         </SheetContent>
       </Sheet>
+      {isDialogOpen && (
+        <div className="blank">
+          <div className="show-popup">
+            <div className="close-btn" onClick={handleCloseDialog}></div>
+            <div className="pt-5">
+              <IoIosCheckmarkCircleOutline
+                style={{ color: "green", fontSize: "80px " }}
+                className="mx-auto"
+              />
+            </div>
+            <div className="heading text-white text-2xl text-center">
+              <h1>{dialogMessage}</h1>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

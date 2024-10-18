@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 
 const app = express();
 const port = 4000;
@@ -7,7 +7,7 @@ const port = 4000;
 app.use(express.json());
 
 // Example POST route
-app.post('/api/data', (req, res) => {
+app.post("/api/data", (req, res) => {
   // Access the data sent in the request body
   const { name, age } = req.body;
 
@@ -15,7 +15,7 @@ app.post('/api/data', (req, res) => {
   console.log(`Received data: Name - ${name}, Age - ${age}`);
 
   // Send a response back to the client
-  res.status(201).send('Data received and processed');
+  res.status(201).send("Data received and processed");
 });
 
 app.listen(port, () => {

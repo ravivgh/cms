@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import fetchStaffDetailsbysid from "@/scripts/staffbystudid.mjs";
- 
+
 const columns = [
   {
     accessorKey: "Staff_name",
@@ -47,11 +47,13 @@ const columns = [
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-            Subject
+        Subject
         <CaretSortIcon className="ml-2 h-4 w-4" />
       </Button>
     ),
-    cell: ({ row }) => <div className="lowercase">{row.getValue("Subject")}</div>,
+    cell: ({ row }) => (
+      <div className="lowercase">{row.getValue("Subject")}</div>
+    ),
   },
 ];
 
@@ -61,20 +63,19 @@ export function FacultyNotEdit() {
   const [columnVisibility, setColumnVisibility] = useState({});
   const [rowSelection, setRowSelection] = useState({});
   const [tabldat, setTabledt] = useState([]);
-useEffect(() =>{
-  const fetchData = async () => {
-    try {
-      let  data = await fetchStaffDetailsbysid();
-      setTabledt(data || []); 
-      
-    } catch (error) {
-      console.error("Error fetching staff details:", error);
-    }
-  };
-  
-  fetchData();
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        let data = await fetchStaffDetailsbysid();
+        setTabledt(data || []);
+        console.log(data);
+      } catch (error) {
+        console.error("Error fetching staff details:", error);
+      }
+    };
 
-},[])
+    fetchData();
+  }, []);
 
   const table = useReactTable({
     data: tabldat,
@@ -138,7 +139,10 @@ useEffect(() =>{
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -147,17 +151,26 @@ useEffect(() =>{
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No results.
                 </TableCell>
               </TableRow>

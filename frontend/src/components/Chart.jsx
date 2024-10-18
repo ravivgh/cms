@@ -45,11 +45,11 @@ const Chart = ({ present, absent, total, month }) => {
   const getMonthName = (month) => {
     const date = new Date();
     date.setMonth(month - 1);
-    return date.toLocaleString('default', { month: 'long' });
+    return date.toLocaleString("default", { month: "long" });
   };
 
   const barChartData = [
-    { month: getMonthName(month), present: present, absent: absent }
+    { month: getMonthName(month), present: present, absent: absent },
   ];
 
   const chartConfig = {
@@ -63,16 +63,19 @@ const Chart = ({ present, absent, total, month }) => {
       const sid = parseInt(localStorage.getItem("student_id"));
 
       try {
-        const response = await axios.post('http://localhost:5472/services/getsubjectsbysid', {
-          sid: sid,
-        });
+        const response = await axios.post(
+          "http://localhost:5472/services/getsubjectsbysid",
+          {
+            sid: sid,
+          }
+        );
 
         setSubjects(response.data.subjectList || []);
         if (response.data.subjectList.length > 0) {
           setSelectedSubject(response.data.subjectList[0]);
         }
       } catch (error) {
-        console.error('Error fetching subjects:', error);
+        console.error("Error fetching subjects:", error);
       }
     };
 
@@ -105,16 +108,19 @@ const Chart = ({ present, absent, total, month }) => {
     const sid = parseInt(localStorage.getItem("student_id"));
 
     try {
-      const response = await axios.post('http://localhost:5472/services/getstuddashattforpie', {
-        sid: sid,
-        subject: selectedSubject,
-        month: month,
-      });
+      const response = await axios.post(
+        "http://localhost:5472/services/getstuddashattforpie",
+        {
+          sid: sid,
+          subject: selectedSubject,
+          month: month,
+        }
+      );
 
       setPresent(response.data.present);
       setAbsent(response.data.absent);
     } catch (error) {
-      console.error('Error submitting attendance:', error);
+      console.error("Error submitting attendance:", error);
     }
   };
 

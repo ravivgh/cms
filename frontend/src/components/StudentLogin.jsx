@@ -1,4 +1,4 @@
-import { useState, useRef,useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PiStudentFill } from "react-icons/pi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,58 +30,59 @@ const StudentLogin = () => {
   const [otp, setOtp] = useState(""); // State to hold OTP
   const [isOtpValid, setIsOtpValid] = useState(false);
   const [email, setEmail] = useState("");
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [isLoaderVisible, setLoaderVisible] = useState(false);
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email regex
+    return emailRegex.test(email);
+  };
+
+  // Handle email input changes
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsEmailValid(validateEmail(newEmail)); // Set valid only if email is correct
+  };
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const isButtonDisabled = !email;
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
   const handleOtpChange = (otp) => {
-    let matchotp = localStorage.getItem('otp');
-    if(otp == matchotp){
-      setIsOtpValid(true)
+    let matchotp = localStorage.getItem("otp");
+    if (otp == matchotp) {
+      setIsOtpValid(true);
+    } else {
+      setIsOtpValid(false);
     }
-    else{
-      setIsOtpValid(false)
-    }
-
-   
   };
   const handleDrawerToggle = async (e) => {
     e.preventDefault();
-    if(await validatestudlogin(email)){
-    setIsDrawerOpen((prev) => !prev);
-    }
-    else{
-      alert("Student with Email not Found")
+    if (await validatestudlogin(email)) {
+      setIsDrawerOpen((prev) => !prev);
+    } else {
+      alert("Student with Email not Found");
       setIsDrawerOpen(false);
-      
-
     }
   };
   const handleVerify = () => {
-    
-    if(isOtpValid){
-      let profile_pic = localStorage.getItem("profile_pic")
-      if(profile_pic == "true"){
-        setLoading(true)
-          setTimeout(() => {
-            setLoading(false)
-            navigate("/studentdashboard");
-          }, 3000);
-        console.log("Not updated")
-      
-
-
-      }
-      else{
+    if (isOtpValid) {
+      let profile_pic = localStorage.getItem("profile_pic");
+      setLoaderVisible(true);
+      if (profile_pic == "true") {
+        setLoading(true);
+        setTimeout(() => {
+          setLoading(false);
+          setLoaderVisible(false);
+          navigate("/studentdashboard");
+        }, 3000);
+        console.log("Not updated");
+      } else {
+        setLoaderVisible(false);
         setStep(2);
       }
-      
-    }
-    else {
+    } else {
       alert("Please enter a valid OTP");
     }
   };
@@ -90,56 +91,57 @@ const StudentLogin = () => {
     setIsCameraOpen(true);
   };
 
-  const  dataURItoBlob = (dataUri) => {
-    const byteString = atob(dataUri.split(',')[1]);
-    const mimeString = dataUri.split(',')[0].split(':')[1].split(';')[0];
+  const dataURItoBlob = (dataUri) => {
+    const byteString = atob(dataUri.split(",")[1]);
+    const mimeString = dataUri.split(",")[0].split(":")[1].split(";")[0];
     const ab = new ArrayBuffer(byteString.length);
     const ia = new Uint8Array(ab);
     for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
+      ia[i] = byteString.charCodeAt(i);
     }
     return new Blob([ab], { type: mimeString });
-}
+  };
   const handleTakePhoto = async (dataUri) => {
     setProfilePicture(dataUri);
     setIsCameraOpen(false);
     console.log(dataUri);
-    isProfilePicupload(true)
-    
+    isProfilePicupload(true);
+  };
 
+  const upload_pic = async () => {
+    const imageBlob = dataURItoBlob(profilePicture);
+    const formData = new FormData();
+    formData.append(
+      "file",
+      imageBlob,
+      localStorage.getItem("student_id") + ".png"
+    );
+    formData.append("picname", localStorage.getItem("student_id") + ".png");
+    formData.append("stdid", parseInt(localStorage.getItem("student_id")));
 
-
-}
-
-const upload_pic =  async () =>{
-  const imageBlob = dataURItoBlob(profilePicture);
-  const formData = new FormData();
-  formData.append('file', imageBlob, localStorage.getItem('student_id') + ".png"); 
-  formData.append('picname', localStorage.getItem('student_id') + ".png");         
-  formData.append('stdid', parseInt(localStorage.getItem('student_id')));
-
-  try {
-      const response = await axios.post('http://localhost:5472/services/studenpicupload', formData, {
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/studenpicupload",
+        formData,
+        {
           headers: {
-              'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
-      });
+        }
+      );
 
       if (response.status === 200) {
-          isProfilePicupload(true)
-          return true
+        isProfilePicupload(true);
+        return true;
       } else {
-        isProfilePicupload(false)
-        return false        
+        isProfilePicupload(false);
+        return false;
       }
-  } catch (error) {
-      console.error('Error uploading image:', error);
-  }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
 
-}
-
-    
-  
   const handlePictureChange = (e) => {
     console.log("object");
     const file = e.target.files[0];
@@ -150,7 +152,6 @@ const upload_pic =  async () =>{
         setProfilePicture(reader.result);
       };
       reader.readAsDataURL(file);
-
     }
   };
 
@@ -221,12 +222,16 @@ const upload_pic =  async () =>{
                     value={email}
                     onChange={handleEmailChange}
                   />
-
+                  {!isEmailValid && email !== "" && (
+                    <p className="text-red-500 text-sm mt-1">
+                      Please enter a valid email address.
+                    </p>
+                  )}
                   <div className="email-btn pt-10 flex relative items-center">
                     <Button
                       className="w-full p-6"
                       onClick={handleDrawerToggle}
-                      disabled={isButtonDisabled}
+                      disabled={!isEmailValid}
                     >
                       Submit
                     </Button>
@@ -355,7 +360,11 @@ const upload_pic =  async () =>{
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    Verify
+                    {isLoaderVisible ? (
+                      <ClipLoader size={20} color={"#fff"} />
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -420,7 +429,6 @@ const upload_pic =  async () =>{
                               >
                                 Take Photo
                               </Button>
-                              
                             </>
                           )}
                         </div>

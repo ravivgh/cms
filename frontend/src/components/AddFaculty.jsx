@@ -66,19 +66,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const Cell = ({ row, setEditFormData }) => {
+const Cell = ({ row, setEditFormData, onDelete }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+
   const handleEdit = () => {
     setEditFormData(row.original); // Set the row data for the form to edit
     setIsSheetOpen(true);
   };
+
   const deleterecord = async (row) => {
     try {
       const response = await deleteStaff(row.original._id);
 
       if (response) {
         setIsAlertOpen(false);
+        onDelete(response);
       }
     } catch (error) {
       console.error(error);
@@ -151,6 +154,9 @@ export function AddFaculty() {
   const [isNameValid, setIsNameValid] = useState(true);
   const [isEmailValid, setIsEmailValid] = useState(true);
   const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(true);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [isSectionValid, setIsSectionValid] = useState(true);
+  const [isClassValid, setIsClassValid] = useState(true);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -161,7 +167,16 @@ export function AddFaculty() {
     const phoneRegex = /^\d{10}$/;
     return phoneRegex.test(phoneNumber);
   };
+  const validateClass = (Class) => {
+    const classRegex = /^[A-Za-z\s]+$/;
+    return classRegex.test(Class);
+  };
 
+  const handleClassChange = (e) => {
+    const newClass = e.target.value;
+    setClass(newClass);
+    setIsClassValid(validateClass(newClass));
+  };
   const handleEmailChange = (e) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
@@ -183,6 +198,16 @@ export function AddFaculty() {
     setName(newName);
     setIsNameValid(validateName(newName));
   };
+  const validateSection = (section) => {
+    const sectionRegex = /^[A-Za-z\s]+$/;
+    return sectionRegex.test(section);
+  };
+
+  const handleSectionChange = (e) => {
+    const newSection = e.target.value;
+    setSection(newSection);
+    setIsSectionValid(validateSection(newSection));
+  };
   const handleSave = () => {
     setDialogMessage("Record added successfully!");
     setIsDialogOpen(true);
@@ -194,22 +219,28 @@ export function AddFaculty() {
   };
 
   // Fetch data from API on component mount
-  const addstaff = () => {
-    alert("Cicked");
-    let response = insertStaff(
-      name,
-      Class,
-      section,
-      subject,
-      email,
-      phoneNumber
-    );
-    if (response) {
-      setIsSheetOpen(false);
-    } else {
-      console.log("Error with the script");
+  const addstaff = async () => {
+    // alert("Cicked");
+    try {
+      let response = insertStaff(
+        name,
+        Class,
+        section,
+        subject,
+        email,
+        phoneNumber
+      );
+      if (response) {
+        setIsSheetOpen(false);
+        setRefreshCount((p) => p + 1);
+      } else {
+        console.log("Error with the script");
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -223,7 +254,7 @@ export function AddFaculty() {
     };
 
     fetchData();
-  }, []);
+  }, [refreshCount]);
 
   const columns = [
     {
@@ -259,7 +290,13 @@ export function AddFaculty() {
     {
       id: "actions",
       enableHiding: false,
-      cell: ({ row }) => <Cell row={row} setEditFormData={setEditFormData} />,
+      cell: ({ row }) => (
+        <Cell
+          row={row}
+          setEditFormData={setEditFormData}
+          onDelete={() => setRefreshCount((p) => p + 1)}
+        />
+      ),
     },
   ];
 
@@ -399,13 +436,25 @@ export function AddFaculty() {
             <TextField
               label="Class"
               value={Class}
-              onChange={(e) => setClass(e.target.value)}
+              onChange={handleClassChange}
+              placeholder="Enter here"
+              error={!isClassValid && Class !== ""}
+              helperText={
+                !isClassValid && Class !== "" ? "Only letters are allowed" : ""
+              }
               fullWidth
             />
             <TextField
               label="Section"
               value={section}
-              onChange={(e) => setSection(e.target.value)}
+              onChange={handleSectionChange}
+              placeholder="Enter here"
+              error={!isSectionValid && section !== ""}
+              helperText={
+                !isSectionValid && section !== ""
+                  ? "Only letters are allowed"
+                  : ""
+              }
               fullWidth
             />
             <TextField
@@ -452,7 +501,11 @@ export function AddFaculty() {
               email === "" ||
               phoneNumber === "" ||
               !isNameValid ||
-              name === ""
+              name === "" ||
+              !isClassValid ||
+              Class === "" ||
+              !isSectionValid ||
+              section === ""
             }
           >
             Add

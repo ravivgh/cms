@@ -12,29 +12,35 @@ import { Calendar } from "@/components/ui/calendar";
 import axios from "axios";
 
 const CalendarMaster = ({ setHolidayData }) => {
-  const [holidayFields, setHolidayFields] = useState([{ id: 1, name: "", date: null }]);
-  const [savedHolidays, setSavedHolidays] = useState([]); // Default to empty array
+  const [holidayFields, setHolidayFields] = useState([
+    { id: 1, name: "", date: null },
+  ]);
+  const [savedHolidays, setSavedHolidays] = useState([]);
+  // Default to empty array
+  const [isValid, setIsValid] = useState(true);
   const maxFields = 5;
-
-  useEffect(() => {
-   
-    const fetchHolidays = async () => {
-      try {
-        const response = await axios.post("http://localhost:5472/services/getholidays");
-        if (response.data && Array.isArray(response.data)) {
-          setSavedHolidays(response.data);
-        } else {
-          setSavedHolidays([]); 
-        }
-      } catch (error) {
-        console.error("Error fetching holidays:", error);
-        setSavedHolidays([]); 
+  const fetchHolidays = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/getholidays"
+      );
+      console.log(response.data);
+      if (response.data && Array.isArray(response.data)) {
+        setSavedHolidays(response.data);
+      } else {
+        setSavedHolidays([]);
       }
-    };
-
+    } catch (error) {
+      console.error("Error fetching holidays:", error);
+      setSavedHolidays([]);
+    }
+  };
+  useEffect(() => {
     fetchHolidays();
   }, []);
-
+  useEffect(() => {
+    console.log(savedHolidays); // Log the saved holidays after it updates
+  }, [savedHolidays]);
   const addHolidayField = () => {
     if (holidayFields.length < maxFields) {
       setHolidayFields([
@@ -50,7 +56,8 @@ const CalendarMaster = ({ setHolidayData }) => {
 
   const handleDateChange = (id, selectedDate) => {
     const isDateAlreadySelected = holidayFields.some(
-      (field) => field.date && field.date.toDateString() === selectedDate.toDateString()
+      (field) =>
+        field.date && field.date.toDateString() === selectedDate.toDateString()
     );
 
     if (isDateAlreadySelected) {
@@ -66,6 +73,14 @@ const CalendarMaster = ({ setHolidayData }) => {
   };
 
   const handleNameChange = (id, name) => {
+    const regex = /^[A-Za-z\s]*$/;
+
+    if (regex.test(name)) {
+      setIsValid(true);
+    } else {
+      setIsValid(false); // Set to false if invalid characters are entered
+    }
+
     setHolidayFields(
       holidayFields.map((field) =>
         field.id === id ? { ...field, name } : field
@@ -75,10 +90,12 @@ const CalendarMaster = ({ setHolidayData }) => {
 
   const saveHolidays = async () => {
     const holidaysToSave = holidayFields
-      .filter(field => field.name && field.date)
-      .map(field => ({
+      .filter((field) => field.name && field.date)
+      .map((field) => ({
         name: field.name,
-        date: `${field.date.getDate()}/${field.date.getMonth() + 1}/${field.date.getFullYear()}` // Format date as DD/MM/YYYY
+        date: `${field.date.getDate()}/${
+          field.date.getMonth() + 1
+        }/${field.date.getFullYear()}`, // Format date as DD/MM/YYYY
       }));
 
     if (holidaysToSave.length === 0) {
@@ -87,14 +104,18 @@ const CalendarMaster = ({ setHolidayData }) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5472/services/addholidays", {
-        holidays: holidaysToSave,
-      });
+      const response = await axios.post(
+        "http://localhost:5472/services/addholidays",
+        {
+          holidays: holidaysToSave,
+        }
+      );
 
       if (response.status === 201) {
         alert("Holidays added successfully!");
-        setHolidayData(holidaysToSave); 
-        setHolidayFields([{ id: 1, name: "", date: null }]); 
+        fetchHolidays();
+        // setHolidayData(holidaysToSave);
+        setHolidayFields([{ id: 1, name: "", date: null }]);
       } else if (response.status === 409) {
         alert("Some holidays already exist.");
       } else {
@@ -111,14 +132,19 @@ const CalendarMaster = ({ setHolidayData }) => {
   return (
     <div className="bg-[#f7f7f7] p-5 rounded-lg">
       <h1 className="text-black py-10 text-2xl">Calendar Master</h1>
-      <hr className="mx-auto bg-[#0000003b] my-2 rounded-sm" style={{ width: "100%", height: "1px", borderWidth: 0 }} />
+      <hr
+        className="mx-auto bg-[#0000003b] my-2 rounded-sm"
+        style={{ width: "100%", height: "1px", borderWidth: 0 }}
+      />
 
       <h1 className="text-black text-3xl pt-16 pb-5">Add Holidays</h1>
       <div className="py-9 flex gap-5">
         <Button
           className="bg-green-700"
           onClick={addHolidayField}
-          disabled={holidayFields.length >= maxFields || !isFirstHolidayComplete}
+          disabled={
+            holidayFields.length >= maxFields || !isFirstHolidayComplete
+          }
         >
           Add Holiday +
         </Button>
@@ -137,10 +163,18 @@ const CalendarMaster = ({ setHolidayData }) => {
               value={field.name}
               onChange={(e) => handleNameChange(field.id, e.target.value)}
             />
+            {!isValid && (
+              <p className="text-red-500 text-sm mt-1">
+                Only letters are allowed.
+              </p>
+            )}
             <div className="flex items-center flex-col">
               <Popover>
                 <PopoverTrigger>
-                  <Button variant="outline" className="flex gap-2 items-center text-white bg-black mx-5">
+                  <Button
+                    variant="outline"
+                    className="flex gap-2 items-center text-white bg-black mx-5"
+                  >
                     <CalendarDays className="h-5 w-5" />
                     Select Date
                   </Button>
@@ -149,7 +183,9 @@ const CalendarMaster = ({ setHolidayData }) => {
                   <Calendar
                     mode="single"
                     selected={field.date}
-                    onSelect={(selectedDate) => handleDateChange(field.id, selectedDate)}
+                    onSelect={(selectedDate) =>
+                      handleDateChange(field.id, selectedDate)
+                    }
                     className="flex flex-1 justify-center rounded-md border"
                   />
                 </PopoverContent>
@@ -160,13 +196,16 @@ const CalendarMaster = ({ setHolidayData }) => {
                 </div>
               )}
             </div>
-            <Button
-              variant="destructive"
-              onClick={() => removeHolidayField(index)}
-              className="ml-4 text-white bg-red-600"
-            >
-              Delete
-            </Button>
+
+            {index !== 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => removeHolidayField(index)}
+                className="ml-4 text-white bg-red-600"
+              >
+                Delete
+              </Button>
+            )}
           </div>
         ))}
       </div>

@@ -29,59 +29,63 @@ const AdminLogin = () => {
   const [otp, setOtp] = useState("");
   const [isOtpValid, setIsOtpValid] = useState(false);
   const [email, setEmail] = useState("");
+  const [isEmailValid, setIsEmailValid] = useState(false);
+
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email regex
+    return emailRegex.test(email);
+  };
+
+  // Handle email input changes
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsEmailValid(validateEmail(newEmail)); // Set valid only if email is correct
+  };
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [profilePicupload, isProfilePicupload] = useState(false);
+  const [isLoaderVisible, setLoaderVisible] = useState(false);
   const navigate = useNavigate();
 
   const isButtonDisabled = !email;
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
   const handleOtpChange = (otp) => {
-    let matchotp = localStorage.getItem('otp');
-    if(otp == matchotp){
-      setIsOtpValid(true)
+    let matchotp = localStorage.getItem("otp");
+    if (otp == matchotp) {
+      setIsOtpValid(true);
+    } else {
+      setIsOtpValid(false);
     }
-    else{
-      setIsOtpValid(false)
-    }
-
-   
   };
   const handleDrawerToggle = async (e) => {
     e.preventDefault();
-    if(await validateadminlogin(email)){
-    setIsDrawerOpen((prev) => !prev);
-    }
-    else{
-      alert("Admin with Email Not Found")
+    if (await validateadminlogin(email)) {
+      setIsDrawerOpen((prev) => !prev);
+    } else {
+      alert("Admin with Email Not Found");
       setIsDrawerOpen(false);
-      
-
     }
   };
   const handleVerify = () => {
-    
-    if(isOtpValid){
-      let profile_pic = localStorage.getItem("profile_pic")
-      if(profile_pic == "true"){
-        setLoading(true)
-          setTimeout(() => {
-            setLoading(false)
-            navigate("/dashboard");
-          }, 3000);
-        
+    if (isOtpValid) {
+      let profile_pic = localStorage.getItem("profile_pic");
+      setLoaderVisible(true);
 
-      }
-      else{
+      if (profile_pic == "true") {
+        setLoading(true);
+        setTimeout(() => {
+          setLoading(false);
+          setLoaderVisible(false);
+          navigate("/dashboard");
+        }, 3000);
+      } else {
+        setLoaderVisible(false);
         setStep(2);
       }
-      
-    }
-    else {
+    } else {
       alert("Please enter a valid OTP");
     }
   };
@@ -90,48 +94,52 @@ const AdminLogin = () => {
     setIsCameraOpen(true);
   };
 
-  const  dataURItoBlob = (dataUri) => {
-    const byteString = atob(dataUri.split(',')[1]);
-    const mimeString = dataUri.split(',')[0].split(':')[1].split(';')[0];
+  const dataURItoBlob = (dataUri) => {
+    const byteString = atob(dataUri.split(",")[1]);
+    const mimeString = dataUri.split(",")[0].split(":")[1].split(";")[0];
     const ab = new ArrayBuffer(byteString.length);
     const ia = new Uint8Array(ab);
     for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
+      ia[i] = byteString.charCodeAt(i);
     }
     return new Blob([ab], { type: mimeString });
-}
+  };
   const handleTakePhoto = async (dataUri) => {
     setProfilePicture(dataUri);
     setIsCameraOpen(false);
-  
-}
-const upload_pic = async () => {
-  const imageBlob = dataURItoBlob(profilePicture);
-  const formData = new FormData();
-  formData.append('file', imageBlob, localStorage.getItem('admin_id') + ".png"); 
-  formData.append('picname', localStorage.getItem('admin_id') + ".png");         
-  formData.append('staffid', parseInt(localStorage.getItem('admin_id')));
-  try {
-      const response = await axios.post('http://localhost:5472/services/adminpicupload', formData, {
+  };
+  const upload_pic = async () => {
+    const imageBlob = dataURItoBlob(profilePicture);
+    const formData = new FormData();
+    formData.append(
+      "file",
+      imageBlob,
+      localStorage.getItem("admin_id") + ".png"
+    );
+    formData.append("picname", localStorage.getItem("admin_id") + ".png");
+    formData.append("staffid", parseInt(localStorage.getItem("admin_id")));
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/adminpicupload",
+        formData,
+        {
           headers: {
-              'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
-      });
+        }
+      );
 
-      if 
-      (response.status === 200) {
-          isProfilePicupload(true)
-          return true
+      if (response.status === 200) {
+        isProfilePicupload(true);
+        return true;
       } else {
-        isProfilePicupload(false)    
-        return false       
+        isProfilePicupload(false);
+        return false;
       }
-  } catch (error) {
-      console.error('Error uploading image:', error);
-  }
-  
-  }
-  
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
 
   const fileInputRef = useRef(null);
   const handleChooseFileClick = () => {
@@ -220,12 +228,16 @@ const upload_pic = async () => {
                     value={email}
                     onChange={handleEmailChange}
                   />
-                  
+                  {!isEmailValid && email !== "" && (
+                    <p className="text-red-500 text-sm mt-1">
+                      Please enter a valid email address.
+                    </p>
+                  )}
                   <div className="btn pt-10 flex relative items-center">
                     <Button
                       className="w-full p-6"
                       onClick={handleDrawerToggle}
-                      disabled={isButtonDisabled}
+                      disabled={!isEmailValid}
                     >
                       Submit
                     </Button>
@@ -354,7 +366,11 @@ const upload_pic = async () => {
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    Verify
+                    {isLoaderVisible ? (
+                      <ClipLoader size={20} color={"#fff"} />
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -427,8 +443,6 @@ const upload_pic = async () => {
                                 ref={fileInputRef}
                                 style={{ display: "none" }}
                               />
-
-                    
                             </>
                           )}
                         </div>

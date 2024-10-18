@@ -40,32 +40,7 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [section, setSection] = useState("");
-  const [errors, setErrors] = useState({
-    name: "",
-    phoneNumber: "",
-  });
-  const validateName = (value) => {
-    const regex = /^[a-zA-Z\s]*$/;
-    if (!regex.test(value)) {
-      setErrors((prev) => ({
-        ...prev,
-        name: "Name must contain only letters.",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, name: "" }));
-    }
-  };
 
-  const validatePhoneNumber = (value) => {
-    if (value.length < 10) {
-      setErrors((prev) => ({
-        ...prev,
-        phoneNumber: "Phone number must be exactly 10 digits.",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, phoneNumber: "" }));
-    }
-  };
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [file, setFile] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -78,6 +53,64 @@ const Register = () => {
   const [status, setStatus] = useState("");
   const [countdown, setCountdown] = useState(3);
   const navigate = useNavigate();
+  const [isCollegeNameValid, setIsCollegeNameValid] = useState(true);
+  const [isNameValid, setIsNameValid] = useState(true);
+  const [isEmailValid, setIsEmailValid] = useState(true);
+  const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(true);
+  // Validate that only letters and spaces are allowed
+  const validateCollegeName = (name) => {
+    const nameRegex = /^[A-Za-z\s]+$/;
+    return nameRegex.test(name);
+  };
+  const validateName = (name) => {
+    const nameRegex = /^[A-Za-z\s]+$/;
+    return nameRegex.test(name);
+  };
+  const handleNameChange = (e) => {
+    const newName = e.target.value;
+    setName(newName);
+    setIsNameValid(validateName(newName)); // Set validation state
+  };
+  const handleCollegeNameChange = (e) => {
+    const newCollegeName = e.target.value;
+    setCollegeName(newCollegeName);
+    setIsCollegeNameValid(validateCollegeName(newCollegeName));
+  };
+  // Validate email format
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Handle email input changes
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsEmailValid(validateEmail(newEmail)); // Set validation state
+  };
+  const validatePhoneNumber = (number) => {
+    const phoneRegex = /^\d{10}$/;
+    return phoneRegex.test(number);
+  };
+
+  // Handle phone number input changes
+  const handlePhoneNumberChange = (e) => {
+    const newPhoneNumber = e.target.value;
+
+    // Allow only numeric input
+    if (!/^\d*$/.test(newPhoneNumber)) {
+      return; // Do nothing if non-numeric characters are input
+    }
+
+    // Limit the input to 10 digits
+    if (newPhoneNumber.length > 10) {
+      return; // Stop further input if the length exceeds 10
+    }
+
+    setPhoneNumber(newPhoneNumber);
+    setIsPhoneNumberValid(newPhoneNumber.length === 10); // Set valid only if exactly 10 digits
+  };
+
   useEffect(() => {
     // Duration for each avatar's progress display
     const duration = 5000; // Adjust timing as needed (5 seconds)
@@ -125,37 +158,41 @@ const Register = () => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       let jsonData = XLSX.utils.sheet_to_json(worksheet);
-      let header = XLSX.utils.sheet_to_json(worksheet,{header: 1});
+      let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
       const firstRow = header[0];
-      const valuesToCheck = ["_id", "Staff_name", "Mob","Staff_Email","Assigned_Class","Section","Subject"];
+      const valuesToCheck = [
+        "_id",
+        "Staff_name",
+        "Mob",
+        "Staff_Email",
+        "Assigned_Class",
+        "Section",
+        "Subject",
+      ];
       let col = 0;
       valuesToCheck.forEach((value) => {
-          if(firstRow[col] === value){
-          col++
-          }
-          else{
-            col--
-          }
-
+        if (firstRow[col] === value) {
+          col++;
+        } else {
+          col--;
+        }
       });
-      if(col === 7){
-      jsonData = jsonData.map((staff) => ({
-        ...staff,
-        college_id: colleegid,
-      }));
-    
-    
-      setFile(jsonData);
-      if (insertstaff(jsonData)) {
+      if (col === 7) {
+        jsonData = jsonData.map((staff) => ({
+          ...staff,
+          college_id: colleegid,
+        }));
+
+        setFile(jsonData);
+        if (insertstaff(jsonData)) {
+        } else {
+          setIsDialogOpen(true);
+          setDialogMessage("Error while Importing Staff Data Successfull");
+          setStatus("Error");
+        }
       } else {
-        setIsDialogOpen(true);
-        setDialogMessage("Error while Importing Staff Data Successfull");
-        setStatus("Error");
+        alert("Staff Excel Should be in Format");
       }
-    }
-    else{
-      alert("Staff Excel Should be in Format")
-    }
     };
 
     reader.readAsArrayBuffer(file);
@@ -205,37 +242,39 @@ const Register = () => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       let jsonData = XLSX.utils.sheet_to_json(worksheet);
-      let header = XLSX.utils.sheet_to_json(worksheet,{header : 1});
+      let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
       const firstRow = header[0];
-      const valuesToCheck = ["_id", "Student_Name", "Class","Section","DOB","Email","Mobile"];
+      const valuesToCheck = [
+        "_id",
+        "Student_Name",
+        "Class",
+        "Section",
+        "DOB",
+        "Email",
+        "Mobile",
+      ];
       let col = 0;
       valuesToCheck.forEach((value) => {
-        if(firstRow[col] === value){
-        col++
+        if (firstRow[col] === value) {
+          col++;
+        } else {
+          col--;
         }
-        else{
-          col--
-        }
-        
       });
-      
-      if(col === 7){
 
-      jsonData = jsonData.map((student) => ({
-        ...student,
-        college_id: colleegid,
-      }));
+      if (col === 7) {
+        jsonData = jsonData.map((student) => ({
+          ...student,
+          college_id: colleegid,
+        }));
 
-    
-      if (insertstudents(jsonData)) {
-        handleNext();
-        setStatus("Success");
+        if (insertstudents(jsonData)) {
+          handleNext();
+          setStatus("Success");
+        }
+      } else {
+        alert("Excel should be in Format");
       }
-    }
-    else{
-
-      alert("Excel should be in Format")
-    }
     };
 
     reader.readAsArrayBuffer(file);
@@ -301,6 +340,7 @@ const Register = () => {
 
       if (addstudent) {
         return true;
+        console.log(addstudent);
       } else {
         console.log("Error");
         setStatus("Error");
@@ -349,8 +389,8 @@ const Register = () => {
         const interval = setInterval(() => {
           setCountdown((prev) => {
             if (prev === 1) {
-              clearInterval(interval); 
-              handleCloseDialog(); 
+              clearInterval(interval);
+              handleCloseDialog();
               return 0;
             }
             return prev - 1; // Decrease the countdown
@@ -362,13 +402,12 @@ const Register = () => {
       setDialogMessage("Registration Failed. Please try again.");
       setIsDialogOpen(true);
 
-     
       setCountdown(3);
       const interval = setInterval(() => {
         setCountdown((prev) => {
           if (prev === 1) {
             clearInterval(interval);
-            handleCloseDialog(); 
+            handleCloseDialog();
             return 0;
           }
           return prev - 1;
@@ -381,11 +420,11 @@ const Register = () => {
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
-    navigate("/login/admin"); 
+    navigate("/login/admin");
   };
   const downloadFile = () => {
     const link = document.createElement("a");
-    link.href = "/student_data.xlsx"; 
+    link.href = "/student_data.xlsx";
     link.download = "student_data.xlsx";
     document.body.appendChild(link);
     link.click();
@@ -403,13 +442,16 @@ const Register = () => {
 
   return (
     <>
-      <nav className="bg-white dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
+      <nav className="bg-[#FFA500] dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
         <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
           <Link
             to="/"
             className="flex items-center space-x-3 rtl:space-x-reverse"
           >
-            <img src={logo} className="h-8" alt="College Logo" />
+            {/* <img src={logo} className="h-8" alt="College Logo" /> */}
+            <h1 className="text-2xl font-medium">
+              <span className="text-[#C70039] font-bold">Edu</span>Manage{" "}
+            </h1>
           </Link>
           <div className="flex space-x-3">
             <div className="login-btn bg-black text-white text-center flex items-center justify-center px-4 py-2 hover:bg-gray-900 rounded-sm">
@@ -447,8 +489,14 @@ const Register = () => {
                         label="College Name"
                         variant="outlined"
                         value={collegeName}
-                        onChange={(e) => setCollegeName(e.target.value)}
+                        onChange={handleCollegeNameChange}
                         placeholder="Enter here"
+                        error={!isCollegeNameValid && collegeName !== ""}
+                        helperText={
+                          !isCollegeNameValid && collegeName !== ""
+                            ? "Only letters are allowed"
+                            : ""
+                        }
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             color: "black",
@@ -654,11 +702,14 @@ const Register = () => {
                             label="Name"
                             variant="outlined"
                             value={name}
-                            onChange={(e) => {
-                              setName(e.target.value);
-                              validateName(e.target.value);
-                            }}
+                            onChange={handleNameChange}
                             placeholder="Enter here"
+                            error={!isNameValid && name !== ""}
+                            helperText={
+                              !isNameValid && name !== ""
+                                ? "Only letters allowed"
+                                : ""
+                            }
                             sx={{
                               "& .MuiOutlinedInput-root": {
                                 color: "black",
@@ -673,11 +724,7 @@ const Register = () => {
                               },
                             }}
                           />
-                          {errors.name && (
-                            <Typography variant="body2" color="error">
-                              {errors.name}
-                            </Typography>
-                          )}
+
                           <div className="flex items-center justify-center relative">
                             <div className=" ">
                               <TextField
@@ -715,8 +762,14 @@ const Register = () => {
                             label="Email"
                             variant="outlined"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={handleEmailChange}
                             placeholder="Enter here"
+                            error={!isEmailValid && email !== ""}
+                            helperText={
+                              !isEmailValid && email !== ""
+                                ? "Please enter a valid email address"
+                                : ""
+                            }
                             sx={{
                               "& .MuiOutlinedInput-root": {
                                 color: "black",
@@ -736,11 +789,17 @@ const Register = () => {
                             label="Phone number"
                             variant="outlined"
                             value={phoneNumber}
-                            onChange={(e) => {
-                              setPhoneNumber(e.target.value);
-                              validatePhoneNumber(e.target.value);
-                            }}
+                            onChange={handlePhoneNumberChange}
                             placeholder="Enter here"
+                            error={!isPhoneNumberValid && phoneNumber !== ""}
+                            helperText={
+                              !isPhoneNumberValid && phoneNumber !== ""
+                                ? "Phone number must be exactly 10 digits"
+                                : ""
+                            }
+                            inputProps={{
+                              maxLength: 10,
+                            }}
                             sx={{
                               "& .MuiOutlinedInput-root": {
                                 color: "black",
@@ -755,11 +814,6 @@ const Register = () => {
                               },
                             }}
                           />
-                          {errors.phoneNumber && (
-                            <Typography variant="body2" color="error">
-                              {errors.phoneNumber}
-                            </Typography>
-                          )}
                         </div>
                       </>
                     )}
@@ -884,8 +938,14 @@ const Register = () => {
                             label="Phone number"
                             variant="outlined"
                             value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            onChange={handlePhoneNumberChange}
                             placeholder="Enter here"
+                            error={!isPhoneNumberValid && phoneNumber !== ""}
+                            helperText={
+                              !isPhoneNumberValid && phoneNumber !== ""
+                                ? "Phone number must be 10 digits"
+                                : ""
+                            }
                             sx={{
                               "& .MuiOutlinedInput-root": {
                                 color: "black",
@@ -1442,14 +1502,17 @@ const Register = () => {
       <div className="">
         <footer className="bg-[#27282c] w-full h-full flex items-center justify-center">
           <div className="py-10 ">
-            <img
+            {/* <img
               src={lightLogo}
               alt="Logo"
               className="w-[150px] h-auto mix-blend-screen"
-            />
+            /> */}
+            <h1 className="text-2xl font-medium">
+              <span className="text-[#C70039] font-bold">Edu</span>Manage{" "}
+            </h1>
             <p className="text-xs text-center text-gray-400">
               {" "}
-              CampusFlow © 2024
+              EduManage © 2024
             </p>
           </div>
         </footer>

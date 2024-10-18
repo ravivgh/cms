@@ -45,11 +45,11 @@ const MainChart = ({ present, absent, total, month }) => {
   const getMonthName = (month) => {
     const date = new Date();
     date.setMonth(month - 1);
-    return date.toLocaleString('default', { month: 'long' });
+    return date.toLocaleString("default", { month: "long" });
   };
 
   const barChartData = [
-    { month: getMonthName(month), present: present, absent: absent }
+    { month: getMonthName(month), present: present, absent: absent },
   ];
 
   const chartConfig = {
@@ -60,17 +60,17 @@ const MainChart = ({ present, absent, total, month }) => {
 
   useEffect(() => {
     const fetchSubjects = async () => {
-      
-
       try {
-        const response = await axios.post('http://localhost:5472/services/getsubjects');
+        const response = await axios.post(
+          "http://localhost:5472/services/getsubjects"
+        );
 
         setSubjects(response.data.subject || []);
         if (response.data.subject.length > 0) {
           setSelectedSubject(response.data.subject[0]);
         }
       } catch (error) {
-        console.error('Error fetching subjects:', error);
+        console.error("Error fetching subjects:", error);
       }
     };
 
@@ -88,7 +88,8 @@ const MainChart = ({ present, absent, total, month }) => {
       {
         status: "Present",
         count: getpresent,
-        fill: "#755485",
+        // fill: "#755485",
+        fill: "#FFA500",
       },
       {
         status: "Absent",
@@ -100,18 +101,19 @@ const MainChart = ({ present, absent, total, month }) => {
   }, [getpresent, getabsent]);
 
   const postAttendanceData = async () => {
-    
-
     try {
-      const response = await axios.post('http://localhost:5472/services/getdataforpieadmin', {
-        Subject: selectedSubject,
-        Month: month,
-      });
+      const response = await axios.post(
+        "http://localhost:5472/services/getdataforpieadmin",
+        {
+          Subject: selectedSubject,
+          Month: month,
+        }
+      );
 
       setPresent(response.data.present);
       setAbsent(response.data.absent);
     } catch (error) {
-      console.error('Error submitting attendance:', error);
+      console.error("Error submitting attendance:", error);
     }
   };
 
@@ -143,7 +145,7 @@ const MainChart = ({ present, absent, total, month }) => {
                     cursor={false}
                     content={<ChartTooltipContent indicator="dashed" />}
                   />
-                  <Bar dataKey="present" fill="#755485" radius={4} />
+                  <Bar dataKey="present" fill="#FFA500" radius={4} />
                   <Bar dataKey="absent" fill="#27282c" radius={4} />
                 </BarChart>
               </ChartContainer>

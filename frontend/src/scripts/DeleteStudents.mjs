@@ -1,23 +1,28 @@
 import axios from "axios";
 
-const  deleteStudent = async (studentId) => {
+const deleteStudent = async (studentId) => {
   try {
-    const response = await axios.post('http://localhost:5472/services/deletestudent', {
-            id: studentId
-        });
-    
-    console.log('Response:', response.data); 
+    const response = await axios.post(
+      "http://localhost:5472/services/deletestudent",
+      {
+        id: studentId,
+      }
+    );
+
+    console.log("Response:", response.data);
 
     if (response.status === 200) {
-      console.log('Student deleted successfully.');
+      console.log("Student deleted successfully.");
+      return response;
     }
   } catch (error) {
     if (error.response) {
-      console.error('Error:', error.response.data.message); 
+      console.error("Error:", error.response.data.message);
     } else {
-      console.error('Error:', error.message); 
+      console.error("Error:", error.message);
     }
+    throw new Error(error);
   }
-}
+};
 
 export default deleteStudent;

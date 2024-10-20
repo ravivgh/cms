@@ -167,7 +167,7 @@ export function AddStudents() {
   };
 
   const handleEmailChange = (e) => {
-    const newEmail = e.target.value;
+    const newEmail = e.target.value; 
     setEmail(newEmail);
     setIsEmailValid(validateEmail(newEmail));
   };
@@ -240,10 +240,11 @@ export function AddStudents() {
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
+        const staff_id = parseInt(localStorage.getItem("staff_id"))
         const response = await axios.post(
-          "http://localhost:5472/services/retrievestudents"
+          "http://localhost:5472/services/retrievestudents",{staffid : parseInt(localStorage.getItem("staff_id"))}
         );
-        debugger;
+        
         setStudentData(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         setStudentData(Array.isArray(response.data) ? response.data : []);

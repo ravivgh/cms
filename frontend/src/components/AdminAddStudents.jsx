@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import insertStaff from "@/scripts/AddStaff.mjs";
-import deleteStaff from "@/scripts/Deletestaff.mjs";
+import deleteStudent from "@/scripts/DeleteStudents.mjs";
+import insertStudent from "@/scripts/AddStudent.mjs";
 import {
   CaretSortIcon,
   ChevronDownIcon,
   DotsHorizontalIcon,
 } from "@radix-ui/react-icons";
 import TextField from "@mui/material/TextField";
-import { IoIosCheckmarkCircleOutline } from "react-icons/io";
 import {
   flexRender,
   getCoreRowModel,
@@ -37,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { IoIosCheckmarkCircleOutline } from "react-icons/io";
 import {
   Sheet,
   SheetContent,
@@ -69,15 +68,13 @@ import {
 const Cell = ({ row, setEditFormData, onDelete }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
-
   const handleEdit = () => {
-    setEditFormData(row.original); 
+    setEditFormData(row.original);
     setIsSheetOpen(true);
   };
-
   const deleterecord = async (row) => {
     try {
-      const response = await deleteStaff(row.original._id);
+      const response = await deleteStudent(row.original._id);
 
       if (response) {
         setIsAlertOpen(false);
@@ -134,7 +131,7 @@ const Cell = ({ row, setEditFormData, onDelete }) => {
   );
 };
 
-export function AddFaculty() {
+export function AdminAddStudents() {
   const [data, setData] = useState([]); // State for table data
   const [editFormData, setEditFormData] = useState(null); // Data for editing the form
   const [sorting, setSorting] = useState([]);
@@ -149,15 +146,16 @@ export function AddFaculty() {
   const [Class, setClass] = useState("");
   const [subject, setSubject] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogMessage, setDialogMessage] = useState("");
+  const [dob, setDob] = useState("");
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [student, setStudentData] = useState({});
   const [isNameValid, setIsNameValid] = useState(true);
   const [isEmailValid, setIsEmailValid] = useState(true);
   const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(true);
-  const [refreshCount, setRefreshCount] = useState(0);
   const [isSectionValid, setIsSectionValid] = useState(true);
   const [isClassValid, setIsClassValid] = useState(true);
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState("");
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -167,18 +165,9 @@ export function AddFaculty() {
     const phoneRegex = /^\d{10}$/;
     return phoneRegex.test(phoneNumber);
   };
-  const validateClass = (Class) => {
-    const classRegex = /^[A-Za-z\s]+$/;
-    return classRegex.test(Class);
-  };
 
-  const handleClassChange = (e) => {
-    const newClass = e.target.value;
-    setClass(newClass);
-    setIsClassValid(validateClass(newClass));
-  };
   const handleEmailChange = (e) => {
-    const newEmail = e.target.value;
+    const newEmail = e.target.value; 
     setEmail(newEmail);
     setIsEmailValid(validateEmail(newEmail));
   };
@@ -208,6 +197,10 @@ export function AddFaculty() {
     setSection(newSection);
     setIsSectionValid(validateSection(newSection));
   };
+  const validateClass = (Class) => {
+    const classRegex = /^[A-Za-z\s]+$/;
+    return classRegex.test(Class);
+  };
   const handleSave = () => {
     setDialogMessage("Record added successfully!");
     setIsDialogOpen(true);
@@ -217,43 +210,49 @@ export function AddFaculty() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
   };
-
-  // Fetch data from API on component mount
-  const addstaff = async () => {
-    // alert("Cicked");
+  const handleClassChange = (e) => {
+    const newClass = e.target.value;
+    setClass(newClass);
+    setIsClassValid(validateClass(newClass));
+  };
+  const addstudent = async () => {
     try {
-      let response = insertStaff(
+      let response = await insertStudent(
         name,
         Class,
         section,
-        subject,
+        dob,
         email,
         phoneNumber
       );
       if (response) {
         setIsSheetOpen(false);
+
         setRefreshCount((p) => p + 1);
       } else {
         console.log("Error with the script");
       }
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStudentData = async () => {
       try {
+        
         const response = await axios.post(
-          "http://localhost:5472/services/retrievestaffs"
+          "http://localhost:5472/services/retrievestudentsadmin"
         );
-        setData(response.data); // Assuming API returns an array of staff data
+        
+        setStudentData(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        setStudentData(Array.isArray(response.data) ? response.data : []);
+        console.error(error);
       }
     };
 
-    fetchData();
+    fetchStudentData();
   }, [refreshCount]);
 
   const columns = [
@@ -262,29 +261,25 @@ export function AddFaculty() {
       header: "ID",
     },
     {
-      accessorKey: "Staff_name",
+      accessorKey: "Student_Name",
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Staff Name
+            Student Name
             <CaretSortIcon className="ml-2 h-4 w-4" />
           </Button>
         );
       },
       cell: ({ row }) => (
-        <div className="lowercase">{row.getValue("Staff_name")}</div>
+        <div className="sentencecase">{row.getValue("Student_Name")}</div>
       ),
     },
     {
-      accessorKey: "Assigned_Class",
+      accessorKey: "Class",
       header: "Class",
-    },
-    {
-      accessorKey: "Subject",
-      header: "Subject",
     },
 
     {
@@ -301,7 +296,7 @@ export function AddFaculty() {
   ];
 
   const table = useReactTable({
-    data,
+    data: student,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -324,9 +319,9 @@ export function AddFaculty() {
       <div className="flex items-center py-4">
         <Input
           placeholder="Filter Name..."
-          value={table.getColumn("Staff_name")?.getFilterValue() ?? ""}
+          value={table.getColumn("Student_Name")?.getFilterValue() ?? ""}
           onChange={(event) =>
-            table.getColumn("Staff_name")?.setFilterValue(event.target.value)
+            table.getColumn("Student_Name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
@@ -417,12 +412,12 @@ export function AddFaculty() {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-[425px]" side="right">
           <SheetHeader>
-            <SheetTitle>Add Staff</SheetTitle>
-            <SheetDescription>Add Staff Info</SheetDescription>
+            <SheetTitle>Add Student</SheetTitle>
+            <SheetDescription>Add Student</SheetDescription>
           </SheetHeader>
           <div className="space-y-2 py-4">
             <TextField
-              label="Staff Name"
+              label="Student Name"
               value={name}
               onChange={handleNameChange}
               placeholder="Enter here"
@@ -430,6 +425,12 @@ export function AddFaculty() {
               helperText={
                 !isNameValid && name !== "" ? "Only letters are allowed" : ""
               }
+              fullWidth
+            />
+            <TextField
+              label="Date of Birth"
+              type="date"
+              onChange={(e) => setDob(e.target.value)}
               fullWidth
             />
 
@@ -457,14 +458,9 @@ export function AddFaculty() {
               }
               fullWidth
             />
+
             <TextField
-              label="Subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Staff Email"
+              label="Student Email"
               value={email}
               onChange={handleEmailChange}
               placeholder="Enter here"
@@ -492,7 +488,7 @@ export function AddFaculty() {
             type="Submit"
             className="w-full"
             onClick={() => {
-              addstaff();
+              addstudent();
               handleSave();
             }}
             disabled={
@@ -531,4 +527,4 @@ export function AddFaculty() {
     </div>
   );
 }
-export default AddFaculty;
+export default AdminAddStudents;

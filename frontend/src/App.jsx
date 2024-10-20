@@ -21,6 +21,7 @@ import MainStudentDetails from "./pages/MainStudentDetails";
 import MainAttendanceSheet from "./pages/MainAttendanceSheet";
 import TimeTable from "./pages/MainTimeTable";
 import CalendarMaster from "./pages/MainCalendarMaster";
+import MainStudents from "./pages/MainStudents";
 
 function App() {
   return (
@@ -36,7 +37,7 @@ function App() {
         {/* admin */}
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<MainDashboard />} />
-          <Route path="/student" element={<MainStudent />} />
+          <Route path="/student" element={<MainStudents />} />
           <Route path="/attendance" element={<MainAttendance />} />
           <Route path="/faculty" element={<MainFaculty />} />
           <Route path = "/Master" element = {<CalendarMaster/>}/>

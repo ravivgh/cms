@@ -9,7 +9,7 @@ const insertStaff = async (staff,Class,section,subject,email,phone) => {
       subject: subject, 
       email: email, 
       phone: phone,    
-      college: localStorage.getItem("college_id")   
+      college: parseInt(localStorage.getItem("college_id"))   
     };
 
     const response = await axios.post('http://localhost:5472/services/insertstaff', staffData);

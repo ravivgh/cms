@@ -9,7 +9,7 @@ const insertStudent = async (sname,Class,section,dob,email,phone) => {
       d_o_b: dob, 
       Email: email, 
       phone: phone,    
-      college: localStorage.getItem("college_id")   
+      college: parseInt(localStorage.getItem("college_id"))
     };
 
     const response = await axios.post('http://localhost:5472/services/insertstudent', staffData);

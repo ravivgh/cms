@@ -200,7 +200,7 @@ app.post("/services/insertstaff", async (req, res) => {
   }
 });
 app.post("/services/insertstudent", async (req, res) => {
-  const { name, Class, section, d_o_b, email, phone, college } = req.body;
+  const { name, Class, section, d_o_b, Email, phone, college } = req.body;
 
   const db = new mongocon();
 
@@ -215,7 +215,7 @@ app.post("/services/insertstudent", async (req, res) => {
       Class: Class,
       Section: section,
       DOB: d_o_b,
-      Email: email,
+      Email: Email,
       Mobile: phone,
       College_id: college,
     });
@@ -462,6 +462,46 @@ app.post("/services/retrievestaffs", async (req, res) => {
   }
 });
 app.post("/services/retrievestudents", async (req, res) => {
+  const {staffid} = req.body
+  const db = new mongocon();
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const staffcol = database.collection("Staff_Master");
+    const getstaff = await staffcol.findOne({_id : staffid})
+    const collection = database.collection("Student_Master");
+console.log(getstaff["Assigned_Class"])
+    const staff = await collection
+      .find({Class : getstaff["Assigned_Class"],Section : getstaff["Section"]},
+        {
+          projection: {
+            id: 1,
+            Student_Name: 1,
+            Class: 1,
+            Section: 1,
+            Subject: 1,
+            DOB: 1,
+            Email: 1,
+            Mobile: 1,
+          },
+        }
+      )
+      .toArray();
+
+    if (staff.length > 0) {
+      res.status(200).json(staff);
+    } else {
+      res.status(200).json({ Message: "No staff found" });
+    }
+  } catch (error) {
+    console.error("Error retrieving documents:", error);
+    res.status(500).json({ Message: "Error retrieving documents", error });
+  } finally {
+    await db.client.close();
+  }
+});
+app.post("/services/retrievestudentsadmin", async (req, res) => {
   const db = new mongocon();
 
   try {
@@ -470,8 +510,7 @@ app.post("/services/retrievestudents", async (req, res) => {
     const collection = database.collection("Student_Master");
 
     const staff = await collection
-      .find(
-        {},
+      .find({},
         {
           projection: {
             id: 1,
@@ -960,33 +999,28 @@ app.post("/services/getstuddashattforpie", async (req, res) => {
 app.post("/services/getdataforpieadmin", async (req, res) => {
   const db = new mongocon();
   const { Month, Subject } = req.body;
-
-  let regexPattern = new RegExp(`/${Month}/${2024}`);
-  let days = new Date(2024, Month, 0).getDate();
-
+  
+  let days = new Date(2024, parseInt(Month), 0).getDate();
+  let monthPattern = `/${Month}/2024`;
+  
   try {
     await db.client.connect();
     const database = db.client.db(db.dbname);
     const attendance = database.collection("Attendance_Master");
     const holidays = database.collection("Holiday_Master");
-
-    const presentCount = await attendance.countDocuments({
+  
+    const presentCount = (await attendance.distinct("Date", {
       Subject: Subject,
-      Date: regexPattern,
-    });
-
+      Date: { $regex: monthPattern },
+    })).length;
+  
     const holidayCount = await holidays.countDocuments({
-      $expr: {
-        $and: [
-          { $eq: [{ $month: "$date" }, parseInt(Month)] },
-          { $eq: [{ $year: "$date" }, 2024] },
-        ],
-      },
+      date: { $regex: monthPattern },
     });
-
+  
     const totalAttendanceDays = days - holidayCount;
     const absentCount = totalAttendanceDays - presentCount;
-
+  
     res.status(200).send({
       absent: absentCount,
       present: presentCount,
@@ -998,8 +1032,8 @@ app.post("/services/getdataforpieadmin", async (req, res) => {
   } finally {
     await db.client.close();
   }
-});
-
+  
+});  
 app.post("/services/deletestudent", async (req, res) => {
   const db = new mongocon();
 

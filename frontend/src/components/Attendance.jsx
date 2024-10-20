@@ -3,11 +3,10 @@ import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import moment from "moment";
-import { Avatar, Button } from "@mui/material";
+import { Avatar, Tooltip } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import { deepPurple } from "@mui/material/colors";
 import axios from "axios";
-import Tooltip from "@mui/material/Tooltip";
 
 const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
   const [rowData, setRowData] = useState([]);
@@ -229,21 +228,8 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
     loadData();
   }, [selectedMonth, sessionStorage.getItem("subject")]);
 
-  //   const handlePreviousMonth = () => {
-  //     setSelectedMonth(moment(selectedMonth).subtract(1, "months"));
-  //   };
-
-  //   const handleNextMonth = () => {
-  //     setSelectedMonth(moment(selectedMonth).add(1, "months"));
-  //   };
-
   return (
     <div>
-      {/* <div className="month-selector">
-        <Button onClick={handlePreviousMonth}>Previous Month</Button>
-        <span>{moment(selectedMonth).format("M YYYY")}</span>
-        <Button onClick={handleNextMonth}>Next Month</Button>
-      </div> */}
       <div
         className="ag-theme-quartz"
         style={{

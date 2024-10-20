@@ -233,7 +233,7 @@ const StudentLogin = () => {
                       onClick={handleDrawerToggle}
                       disabled={!isEmailValid}
                     >
-                      Submit
+                      Login
                     </Button>
                     <div className="absolute left-[200px]">
                       <IoIosArrowRoundForward

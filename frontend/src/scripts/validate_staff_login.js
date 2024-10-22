@@ -13,6 +13,8 @@ const validatestafflogin = async (username)=>{
         localStorage.setItem('staff_id', response.data._id);
         localStorage.setItem('profile_pic',response.data.profile_pic)
         localStorage.setItem('subject',response.data.subject)
+        localStorage.setItem('college_id',response.data.college)
+        
         return true
 
         

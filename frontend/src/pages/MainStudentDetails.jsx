@@ -26,7 +26,7 @@ const MainStudentDetails = () => {
           width: isSidebarOpen ? "calc(100% - 12.5rem)" : "calc(100% - 5rem)",
         }}
       >
-        <Students loading={loading} setLoading={setLoading} /> {/* Pass loading props */}
+        <Students loading={loading} setLoading={setLoading} /> 
       </main>
     </div>
   );

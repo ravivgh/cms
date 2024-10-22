@@ -1121,6 +1121,7 @@ app.post("/services/validatestafflogin", async (req, res) => {
             _id: searchusername["_id"],
             profile_pic: searchusername["isprofilepic"],
             subject: searchusername["Subject"],
+            college: searchusername["college_id"]
           });
         })
         .catch((error) => {

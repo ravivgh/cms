@@ -8,25 +8,34 @@ import Stack from "@mui/material/Stack";
 import { deepPurple } from "@mui/material/colors";
 import axios from "axios";
 
-const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
+const AttendanceGrid = ({ selectedMonth }) => {
   const [rowData, setRowData] = useState([]);
   const [colDefs, setColDefs] = useState([]);
   const [holidays, setHolidays] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
   const defaultAvatarUrl = "https://example.com/default-avatar.jpg";
   const rowHeight = 70;
   const headerHeight = 50;
   const gridHeight = rowData.length * rowHeight + headerHeight;
 
-  const fetchAttendanceRecords = async () => {
+  const fetchStudents = async (subject) => {
     try {
-      const response = await axios.post(
-        "http://localhost:5472/services/getattendance",
-        {
-          subject: localStorage.getItem("subject"),
-          month: moment(selectedMonth).format("M"),
-          year: moment(selectedMonth).year(),
-        }
-      );
+      const response = await axios.post("http://localhost:5472/services/getattesubstud", { subject });
+      return response.data.Students || [];
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      return [];
+    }
+  };
+
+  const fetchAttendanceRecords = async (subject, month, year) => {
+    try {
+      const response = await axios.post("http://localhost:5472/services/getattendance", {
+        subject,
+        month,
+        year,
+      });
       return response.data.logs || [];
     } catch (error) {
       console.error("Error fetching attendance records:", error);
@@ -34,30 +43,9 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
     }
   };
 
-  const getUniqueRecord = async () => {
-    try {
-      const response = await axios.post(
-        "http://localhost:5472/services/getattesubstud",
-        {
-          subject: localStorage.getItem("subject"),
-        }
-      );
-      const fetchedUsers = response.data.Students || [];
-      return fetchedUsers.map((user) => ({
-        ...user,
-        avatarUrl: user.avatarUrl || defaultAvatarUrl,
-      }));
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      return [];
-    }
-  };
-
   const fetchHolidays = async () => {
     try {
-      const response = await axios.post(
-        "http://localhost:5472/services/getholidays"
-      );
+      const response = await axios.post("http://localhost:5472/services/getholidays");
       return response.data || [];
     } catch (error) {
       console.error("Error fetching holidays:", error);
@@ -70,7 +58,7 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
       ...user,
       avatar: (
         <Avatar
-          src={user.avatarUrl}
+          src={user.avatarUrl || defaultAvatarUrl}
           sx={{ bgcolor: deepPurple[500] }}
           onError={(e) => (e.currentTarget.src = defaultAvatarUrl)}
         />
@@ -78,20 +66,17 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
     }));
   };
 
-  const avatarCellRenderer = (params) => {
-    return (
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <Stack direction="row" spacing={2}>
-          {params.data.avatar}
-        </Stack>
-      </div>
-    );
-  };
+  const avatarCellRenderer = (params) => (
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <Stack direction="row" spacing={2}>
+        {params.data.avatar}
+      </Stack>
+    </div>
+  );
 
   const logAttendance = async (studentId, date, isChecked) => {
     const month = moment(selectedMonth).format("M");
     const year = moment(selectedMonth).year();
-
     const logEntry = {
       Student_id: studentId,
       Date: `${date}/${month}/${year}`,
@@ -99,134 +84,123 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
       present: isChecked ? "Y" : "N",
     };
     try {
-      const response = await axios.post(
-        "http://localhost:5472/services/insertattendance",
-        { logs: logEntry }
-      );
-      if (response.status === 200) {
-        console.log("Attendance added successfully.");
-      } else {
-        console.error(
-          "Failed to send attendance logs. Server responded with status:",
-          response.status
-        );
-      }
+      await axios.post("http://localhost:5472/services/insertattendance", { logs: logEntry });
     } catch (error) {
-      console.error("Error sending attendance logs to the server:", error);
+      console.error("Error logging attendance:", error);
     }
   };
 
   const deleteAttendance = async (studentId, date, month, year) => {
     const formattedDate = `${date}/${month}/${year}`;
     try {
-      const response = await axios.post(
-        "http://localhost:5472/services/deleteattendance",
-        {
-          sid: studentId,
-          date: formattedDate,
-          Sub: localStorage.getItem("subject"),
-        }
-      );
-      if (response.status === 200) {
-        console.log("Attendance deleted successfully.");
-      } else {
-        console.error(
-          "Failed to delete attendance record. Server responded with status:",
-          response.status
-        );
-      }
+      await axios.post("http://localhost:5472/services/deleteattendance", {
+        sid: studentId,
+        date: formattedDate,
+        Sub: localStorage.getItem("subject"),
+      });
     } catch (error) {
-      console.error("Error deleting attendance record from the server:", error);
+      console.error("Error deleting attendance:", error);
     }
   };
 
   const checkboxCellRenderer = (params) => {
-    const dateKey = params.colDef.field; // day of the month
+    const dateKey = params.colDef.field;
     const month = moment(selectedMonth).format("M");
     const year = moment(selectedMonth).year();
-    const fullDate = `${dateKey}/${month}/${year}`;
+    const fullDate = `${dateKey.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
     const holiday = holidays.find((holiday) => holiday.date === fullDate);
     const isHoliday = Boolean(holiday);
 
     return (
-      <div>
-        <Tooltip title={isHoliday ? `Holiday: ${holiday.name}` : ""} arrow>
-          <span>
-            <input
-              type="checkbox"
-              checked={params.value}
-              disabled={isHoliday}
-              onChange={async (e) => {
-                const updatedValue = e.target.checked;
-                params.node.setDataValue(params.colDef.field, updatedValue);
-                const studentId = params.data._id;
+      <Tooltip title={isHoliday ? `Holiday: ${holiday.name}` : ""} arrow>
+        <span>
+          <input
+            type="checkbox"
+            checked={params.value}
+            disabled={isHoliday}
+            onChange={async (e) => {
+              const updatedValue = e.target.checked;
+              params.node.setDataValue(params.colDef.field, updatedValue);
+              const studentId = params.data._id;
 
-                if (updatedValue) {
-                  await logAttendance(studentId, dateKey, updatedValue);
-                } else {
-                  await deleteAttendance(studentId, dateKey, month, year);
-                }
-              }}
-            />
-          </span>
-        </Tooltip>
-      </div>
+              if (updatedValue) {
+                await logAttendance(studentId, dateKey, updatedValue);
+              } else {
+                await deleteAttendance(studentId, dateKey, month, year);
+              }
+            }}
+          />
+        </span>
+      </Tooltip>
     );
   };
 
   useEffect(() => {
     const loadData = async () => {
-      const holidaysData = await fetchHolidays();
-      setHolidays(holidaysData);
+      const subject = localStorage.getItem("subject");
+      if (!subject) return;
 
-      const numberOfDays = moment(selectedMonth).daysInMonth();
-      const daysArray = Array.from({ length: numberOfDays }, (_, i) => i + 1);
+      
+      if (students.length === 0) {
+        const fetchedStudents = await fetchStudents(subject);
+        setStudents(fetchedStudents);
+      }
 
-      const userList = await getUniqueRecord();
-      const attendanceLogs = await fetchAttendanceRecords();
+      const month = moment(selectedMonth).format("M");
+      const year = moment(selectedMonth).year();
 
-      if (userList.length > 0) {
-        userList.forEach((user) => {
+      
+      if (attendanceLogs.length === 0) {
+        const fetchedAttendanceLogs = await fetchAttendanceRecords(subject, month, year);
+        setAttendanceLogs(fetchedAttendanceLogs);
+      }
+
+      
+      if (holidays.length === 0) {
+        const holidaysData = await fetchHolidays();
+        setHolidays(holidaysData);
+      }
+
+      
+      if (students.length > 0 && attendanceLogs.length > 0) {
+        const numberOfDays = moment(selectedMonth).daysInMonth();
+        const daysArray = Array.from({ length: numberOfDays }, (_, i) => i + 1);
+
+        students.forEach((student) => {
           daysArray.forEach((date) => {
             const attendanceRecord = attendanceLogs.find(
               (log) =>
-                log.Student_id === user._id &&
-                log.Date ===
-                  `${date}/${moment(selectedMonth).format("M")}/${moment(
-                    selectedMonth
-                  ).year()}`
+                log.Student_id === student._id &&
+                log.Date === `${date}/${month}/${year}`
             );
-            user[date.toString()] = attendanceRecord?.present === "Y";
+            student[date.toString()] = attendanceRecord?.present === "Y";
           });
         });
 
-        const usersWithAvatars = generateUserAvatars(userList);
-        setRowData(usersWithAvatars);
-      } else {
-        setRowData([]);
+        setRowData(generateUserAvatars(students));
+
+        const dateCols = daysArray.map((date) => ({
+          field: date.toString(),
+          width: 50,
+          editable: true,
+          cellRenderer: checkboxCellRenderer,
+        }));
+
+        setColDefs([
+          { field: "_id", headerName: "Student ID" },
+          {
+            field: "avatar",
+            headerName: "Profile Pic",
+            cellRenderer: avatarCellRenderer,
+          },
+          { field: "Student_Name", headerName: "Student Name" },
+          ...dateCols,
+        ]);
       }
-
-      const dateCols = daysArray.map((date) => ({
-        field: date.toString(),
-        width: 50,
-        editable: true,
-        cellRenderer: checkboxCellRenderer,
-      }));
-
-      setColDefs([
-        { field: "_id", headerName: "Student ID" },
-        {
-          field: "avatar",
-          headerName: "Profile Pic",
-          cellRenderer: avatarCellRenderer,
-        },
-        { field: "Student_Name", headerName: "Student Name" },
-        ...dateCols,
-      ]);
     };
 
     loadData();
-  }, [selectedMonth, sessionStorage.getItem("subject")]);
+  }, [selectedMonth, students, attendanceLogs, holidays]);
 
   return (
     <div>
@@ -242,7 +216,7 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth }) => {
             columnDefs={colDefs}
             rowData={rowData}
             rowHeight={rowHeight}
-          ></AgGridReact>
+          />
         ) : (
           <div className="text-center text-gray-500">
             <h2>No Students Found</h2>

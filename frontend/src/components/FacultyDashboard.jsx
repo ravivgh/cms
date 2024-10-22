@@ -27,8 +27,8 @@ const FacultyDashboard = ({ selectedMonth }) => {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [chartData, setChartData] = useState([]);
-  const [presentcount, setPresentcount] = useState(0); 
-  const [absentcount, setAbsentcount] = useState(0); 
+  const [presentcount, setPresentcount] = useState(0);
+  const [absentcount, setAbsentcount] = useState(0);
   const [totalstud, setTotalstud] = useState(0);
   const [name, setName] = useState("om");
   const [staffname, setStaffname] = useState("");
@@ -36,45 +36,44 @@ const FacultyDashboard = ({ selectedMonth }) => {
 
   console.log(selectedMonth);
 
-  
-
   const fetchAttendancePercentage = async (month) => {
     console.log(month);
     try {
-      const response = await axios.post("http://localhost:5472/services/getstafdashcount", {
-        month: new Date().getMonth() + 1,
-        staff_id: parseInt(localStorage.getItem("staff_id")),
-      });
+      const response = await axios.post(
+        "http://localhost:5472/services/getstafdashcount",
+        {
+          month: new Date().getMonth() + 1,
+          staff_id: parseInt(localStorage.getItem("staff_id")),
+        }
+      );
 
       setPresentcount(response.data.present || 0);
       setAbsentcount(response.data.absent || 0);
       setTotalstud(response.data.students || 0);
-      setStaffname(response.data.staffname || "")
-      setStaffclass(response.data.Class || "")
-      
+      setStaffname(response.data.staffname || "");
+      setStaffclass(response.data.Class || "");
     } catch (error) {
       console.error("Error fetching attendance percentage:", error);
     }
   };
-
 
   useEffect(() => {
     const staffId = parseInt(localStorage.getItem("staff_id"));
 
     const fetchSubjectsByStaffId = async () => {
       try {
-        
-        const response = await axios.post("http://localhost:5472/services/getsubjectsbystaffid", {
-          staff_id: staffId,
-        });
+        const response = await axios.post(
+          "http://localhost:5472/services/getsubjectsbystaffid",
+          {
+            staff_id: staffId,
+          }
+        );
 
-        console.log("API Response:", response.data); 
+        console.log("API Response:", response.data);
 
-       
-        const subjectsData = response.data.map((item) => item.subject) || []; 
-        setSubjects(subjectsData); 
+        const subjectsData = response.data.map((item) => item.subject) || [];
+        setSubjects(subjectsData);
 
-       
         if (subjectsData.length > 0) {
           setSelectedSubject(subjectsData[0]);
         }
@@ -91,20 +90,19 @@ const FacultyDashboard = ({ selectedMonth }) => {
   }, []);
 
   useEffect(() => {
-      const data = [
-        {
-          status: "Present",
-          count: presentcount,
-          fill: "#755485",
-        },
-        {
-          status: "Absent",
-          count: absentcount,
-          fill: "#27282c",
-        },
-      ];
-      setChartData(data);
-    
+    const data = [
+      {
+        status: "Present",
+        count: presentcount,
+        fill: "#27a1dd",
+      },
+      {
+        status: "Absent",
+        count: absentcount,
+        fill: "#27282c",
+      },
+    ];
+    setChartData(data);
   }, [selectedSubject, presentcount, absentcount]);
 
   const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
@@ -117,20 +115,38 @@ const FacultyDashboard = ({ selectedMonth }) => {
           <h2 className="text-2xl text-black">Name : {staffname}</h2>
           <h2 className="text-2xl text-black">Class :{staffclass}</h2>
         </div>
-        <hr className="mx-auto bg-[#0000003b] my-2 rounded-sm" style={{ width: "100%", height: "1px", color: "white", borderWidth: 0 }} />
+        <hr
+          className="mx-auto bg-[#0000003b] my-2 rounded-sm"
+          style={{
+            width: "100%",
+            height: "1px",
+            color: "white",
+            borderWidth: 0,
+          }}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-6">
-          <Cards icon={<GraduationCap />} title="Total Students" value={totalstud} />
-          <Cards icon={<TrendingUp />} title="Present" value={`${presentcount}%`} />
-          <Cards icon={<TrendingDown />} title="Absent" value={`${absentcount}%`} />
+          <Cards
+            icon={<GraduationCap />}
+            title="Total Students"
+            value={totalstud}
+          />
+          <Cards
+            icon={<TrendingUp />}
+            title="Present"
+            value={`${presentcount}%`}
+          />
+          <Cards
+            icon={<TrendingDown />}
+            title="Absent"
+            value={`${absentcount}%`}
+          />
         </div>
       </div>
       <div>
-        <FacultyChart  present = {presentcount} absent = {absentcount}/>
+        <FacultyChart present={presentcount} absent={absentcount} />
       </div>
       <div className="flex flex-wrap justify-between gap-6">
         <div className="w-full md:w-[48%] lg:w-[40%]">
-          
-
           <Card className="flex flex-col">
             <CardHeader className="items-center pb-0">
               <CardTitle>Overall Attendance</CardTitle>

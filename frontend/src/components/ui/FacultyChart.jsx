@@ -40,7 +40,7 @@ const FacultyChart = ({ present, absent, total, month }) => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [getpresent, setPresent] = useState(0);
-  const[getholiday, setHolidays] = useState(0);
+  const [getholiday, setHolidays] = useState(0);
   const [getabsent, setAbsent] = useState(0);
 
   const getMonthName = () => {
@@ -71,8 +71,10 @@ const FacultyChart = ({ present, absent, total, month }) => {
         );
 
         // Update this part to access the correct property
-        const subjectsData = response.data.subjects ? [response.data.subjects] : [];
-        
+        const subjectsData = response.data.subjects
+          ? [response.data.subjects]
+          : [];
+
         if (Array.isArray(subjectsData) && subjectsData.length > 0) {
           setSubjects(subjectsData);
           setSelectedSubject(subjectsData[0]); // Set the first subject as selected
@@ -98,7 +100,7 @@ const FacultyChart = ({ present, absent, total, month }) => {
       {
         status: "Present",
         count: getpresent,
-        fill: "#755485",
+        fill: "#27a1dd",
       },
       {
         status: "Absent",
@@ -109,7 +111,7 @@ const FacultyChart = ({ present, absent, total, month }) => {
         status: "Holiday",
         count: getholiday,
         fill: "#eb071e",
-      }
+      },
     ];
     setChartData(data);
   }, [getpresent, getabsent]);
@@ -126,7 +128,7 @@ const FacultyChart = ({ present, absent, total, month }) => {
 
       setPresent(response.data.present);
       setAbsent(response.data.absent);
-      setHolidays(response.data.holidays)
+      setHolidays(response.data.holidays);
     } catch (error) {
       console.error("Error submitting attendance:", error);
     }
@@ -160,16 +162,13 @@ const FacultyChart = ({ present, absent, total, month }) => {
                     cursor={false}
                     content={<ChartTooltipContent indicator="dashed" />}
                   />
-                  <Bar dataKey="present" fill="#755485" radius={4} />
+                  <Bar dataKey="present" fill="#27a1dd" radius={4} />
                   <Bar dataKey="absent" fill="#27282c" radius={4} />
                 </BarChart>
               </ChartContainer>
             </CardContent>
             <CardFooter className="flex-col items-start gap-2 text-sm">
-              <div className="flex gap-2 font-medium leading-none">
-                
-                
-              </div>
+              <div className="flex gap-2 font-medium leading-none"></div>
               <div className="leading-none text-muted-foreground">
                 Showing total for the last 6 months
               </div>
@@ -180,7 +179,9 @@ const FacultyChart = ({ present, absent, total, month }) => {
         <div className="w-full md:w-[48%] lg:w-[40%]">
           <DropdownMenu>
             <DropdownMenuTrigger className="text-white bg-black p-3 rounded-sm my-3">
-              {selectedSubject ? `Selected Subject: ${selectedSubject}` : "Select Subject"}
+              {selectedSubject
+                ? `Selected Subject: ${selectedSubject}`
+                : "Select Subject"}
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuLabel>Subjects</DropdownMenuLabel>

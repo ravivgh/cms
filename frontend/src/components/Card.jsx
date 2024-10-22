@@ -1,7 +1,7 @@
 const Card = ({ icon, title, value }) => {
   return (
     <>
-      <div className="flex items-center gap-5 p-10  bg-[#FFA500] rounded-lg shadow-sm">
+      <div className="flex items-center gap-5 p-10  bg-[#27a1dd] rounded-lg shadow-sm">
         {/* #2C2C2C */}
         <div className="p-2 h-10 w-10 rounded-full bg-white text-primary">
           {icon}

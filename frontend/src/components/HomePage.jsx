@@ -73,15 +73,15 @@ const HomePage = () => {
   return (
     <>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-black">
-        <nav className="bg-[#FFA500] dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
+        <nav className="bg-[#27a1dd] dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
           <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
             <Link
               to="/"
               className="flex items-center space-x-3 rtl:space-x-reverse"
             >
               {/* <img src={logo} className="h-8" alt="College Logo" /> */}
-              <h1 className="text-2xl font-medium">
-                <span className="text-[#C70039] font-bold">Edu</span>Manage{" "}
+              <h1 className="text-2xl font-medium text-white">
+                <span className="text-[#e2e2e2] font-bold">Edu</span>Sphere{" "}
               </h1>
             </Link>
             <div className="flex space-x-3">
@@ -108,7 +108,7 @@ const HomePage = () => {
           <p className="text-center text-gray-400 pt-2 text-base lg:text-lg">
             Save Time and Resources in just 2 steps
           </p>
-          <div className="register-btn bg-[#FFA500] text-white text-center w-[250px] mx-auto mt-6 p-4 rounded-full flex items-center justify-center hover:bg-gray-200 hover:text-black ">
+          <div className="register-btn bg-[#27a1dd] text-white text-center w-[250px] mx-auto mt-6 p-4 rounded-full flex items-center justify-center hover:bg-gray-200 hover:text-black ">
             {/* hover:bg-gray-900 */}
             <Link to="/register" className="px-5 ">
               College Register
@@ -450,12 +450,12 @@ const HomePage = () => {
               className="w-[150px] h-auto mix-blend-screen"
             /> */}
             <h1 className="text-2xl font-medium">
-              <span className="text-[#C70039] font-bold">Edu</span>Manage{" "}
+              <span className="text-[#C70039] font-bold">Edu</span>Sphere{" "}
             </h1>
             <p className="text-xs text-center text-gray-400">
               {" "}
               {/* CampusFlow © 2024 */}
-              EduManage © 2024
+              EduSphere © 2024
             </p>
           </div>
         </footer>

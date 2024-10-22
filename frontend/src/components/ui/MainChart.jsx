@@ -89,7 +89,7 @@ const MainChart = ({ present, absent, total, month }) => {
         status: "Present",
         count: getpresent,
         // fill: "#755485",
-        fill: "#FFA500",
+        fill: "#27a1dd",
       },
       {
         status: "Absent",
@@ -145,7 +145,7 @@ const MainChart = ({ present, absent, total, month }) => {
                     cursor={false}
                     content={<ChartTooltipContent indicator="dashed" />}
                   />
-                  <Bar dataKey="present" fill="#FFA500" radius={4} />
+                  <Bar dataKey="present" fill="#27a1dd" radius={4} />
                   <Bar dataKey="absent" fill="#27282c" radius={4} />
                 </BarChart>
               </ChartContainer>

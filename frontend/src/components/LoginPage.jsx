@@ -68,15 +68,15 @@ const LoginPage = () => {
   return (
     <>
       <div className="container px-4">
-        <nav className="bg-[#FFA500] dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
+        <nav className="bg-[#27a1dd] dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
           <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
             <Link
               to="/"
               className="flex items-center space-x-3 rtl:space-x-reverse"
             >
               {/* <img src={logo} className="h-8" alt="College Logo" /> */}
-              <h1 className="text-2xl font-medium">
-                <span className="text-[#C70039] font-bold">Edu</span>Manage{" "}
+              <h1 className="text-2xl font-medium text-white">
+                <span className="text-[#e2e2e2] font-bold">Edu</span>Sphere{" "}
               </h1>
             </Link>
             <div className="flex space-x-3">
@@ -347,11 +347,11 @@ const LoginPage = () => {
               className="w-[150px] h-auto mix-blend-screen"
             /> */}
             <h1 className="text-2xl font-medium">
-              <span className="text-[#C70039] font-bold">Edu</span>Manage{" "}
+              <span className="text-[#C70039] font-bold">Edu</span>Sphere{" "}
             </h1>
             <p className="text-xs text-center text-gray-400">
               {" "}
-              EduManage © 2024
+              EduSphere © 2024
             </p>
           </div>
         </footer>

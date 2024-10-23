@@ -199,10 +199,8 @@ const StaffLogin = () => {
           </div>
         </div>
         <div className="right-side-content w-full md:w-1/2 flex flex-col items-center justify-center">
-          {/* <img src={logo} alt="Logo" className="w-40 md:w-40" /> */}
-          <h1 className="text-2xl font-medium text-[#636363]">
-            <span className="text-[#323232] font-bold">Edu</span>Sphere{" "}
-          </h1>
+          <img src={logo} alt="Logo" className="w-40 md:w-40" />
+
           <div className="w-full max-w-sm p-4">
             <div className="student-box-heading flex items-center justify-center pb-4">
               <h2 className="text-center p-1 m-10 bg-[#f1ce8b] rounded-sm w-32 text-black">

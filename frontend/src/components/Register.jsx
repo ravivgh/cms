@@ -442,16 +442,13 @@ const Register = () => {
 
   return (
     <>
-      <nav className="bg-[#27a1dd] dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
+      <nav className="bg-white dark:bg-gray-900 fixed w-full  z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md">
         <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
           <Link
             to="/"
             className="flex items-center space-x-3 rtl:space-x-reverse"
           >
-            {/* <img src={logo} className="h-8" alt="College Logo" /> */}
-            <h1 className="text-2xl font-medium text-white">
-              <span className="text-[#e2e2e2] font-bold">Edu</span>Sphere{" "}
-            </h1>
+            <img src={logo} className="h-8" alt="College Logo" />
           </Link>
           <div className="flex space-x-3">
             <div className="login-btn bg-black text-white text-center flex items-center justify-center px-4 py-2 hover:bg-gray-900 rounded-sm">
@@ -1502,17 +1499,15 @@ const Register = () => {
       <div className="">
         <footer className="bg-[#27282c] w-full h-full flex items-center justify-center">
           <div className="py-10 ">
-            {/* <img
+            <img
               src={lightLogo}
               alt="Logo"
               className="w-[150px] h-auto mix-blend-screen"
-            /> */}
-            <h1 className="text-2xl font-medium">
-              <span className="text-[#C70039] font-bold">Edu</span>Manage{" "}
-            </h1>
+            />
+
             <p className="text-xs text-center text-gray-400">
               {" "}
-              EduSphere © 2024
+              CampusFlow © 2024
             </p>
           </div>
         </footer>

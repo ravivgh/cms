@@ -94,7 +94,7 @@ const FacultyDashboard = ({ selectedMonth }) => {
       {
         status: "Present",
         count: presentcount,
-        fill: "#27a1dd",
+        fill: "#755485",
       },
       {
         status: "Absent",

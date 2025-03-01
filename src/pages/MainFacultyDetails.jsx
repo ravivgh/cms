@@ -1,5 +1,5 @@
 import FacultyNotEdit from "@/components/FacultyNotEdit";
-// import Facultys from "@/components/Facultys";
+import Facultys from "@/components/Facultys";
 import StudentSidebar from "@/components/StudentSidebar";
 import { useState } from "react";
 

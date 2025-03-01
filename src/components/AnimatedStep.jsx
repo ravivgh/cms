@@ -19,7 +19,7 @@ const AnimatedStep = ({ currentSlide, setCurrentSlide }) => {
           transition={{ type: "spring", stiffness: 300 }}
         >
           {index === 0 && (
-            <div className="flex items-center justify-center w-[120px] sm:w-[130px] md:w-[140px] lg:w-[150px] h-10 sm:h-11 md:h-12 cursor-pointer ">
+            <div className="flex items-center justify-center w-fit px-7 py-3 cursor-pointer border border-[#d9d9d9] rounded-full">
               <FaUniversity className="text-[#755485] c" />
               <p className="flex items-center justify-center text-center  text-sm text-gray-600 sm:pl-3 sm:text-base pl-2">
                 Register
@@ -27,17 +27,17 @@ const AnimatedStep = ({ currentSlide, setCurrentSlide }) => {
             </div>
           )}
           {index === 1 && (
-            <div className="flex items-center justify-center  w-[120px] sm:w-[130px] md:w-[140px] lg:w-[150px] h-10 sm:h-11 md:h-12 cursor-pointer">
+            <div className="flex items-center justify-center w-fit px-7 py-3 cursor-pointer border border-[#d9d9d9] rounded-full">
               <PiMicrosoftExcelLogoFill className="text-green-800 " />
-              <p className="flex items-center justify-center text-center  text-sm text-gray-600 pl-3">
+              <p className="flex items-center justify-center text-center  text-sm text-gray-600 sm:pl-3 sm:text-base pl-2">
                 Import Excel
               </p>
             </div>
           )}
           {index === 2 && (
-            <div className="flex items-center justify-center  w-[120px] sm:w-[130px] md:w-[140px] lg:w-[150px] h-10 sm:h-11 md:h-12 cursor-pointer">
+            <div className="flex items-center justify-center  w-fit px-7 py-3 cursor-pointer border border-[#d9d9d9] rounded-full">
               <FcVoicePresentation style={{ fontSize: "25px" }} />
-              <p className="flex items-center justify-center text-center  text-sm text-gray-600 pl-3">
+              <p className="flex items-center justify-center text-center  text-sm text-gray-600 sm:pl-3 sm:text-base pl-2">
                 Attendance
               </p>
             </div>

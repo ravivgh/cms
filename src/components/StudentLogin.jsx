@@ -12,6 +12,8 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { IoIosCamera } from "react-icons/io";
+
 import Camera from "react-html5-camera-photo";
 import "react-html5-camera-photo/build/css/index.css";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
@@ -27,13 +29,25 @@ const StudentLogin = () => {
   const [otp, setOtp] = useState(""); // State to hold OTP
   const [isOtpValid, setIsOtpValid] = useState(false);
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const navigate = useNavigate();
 
-  const isButtonDisabled = !email;
+  // const isButtonDisabled = !email;
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailPattern.test(e.target.value)) {
+      setError("Please enter a valid email address");
+      setIsButtonDisabled(true);
+    } else {
+      setError("");
+      setIsButtonDisabled(false);
+    }
   };
   const handleOtpChange = (otp) => {
     setOtp(otp);
@@ -47,7 +61,13 @@ const StudentLogin = () => {
   };
   const handleVerify = () => {
     if (isOtpValid) {
-      setStep(2);
+      setIsVerifying(true); // Start loading
+
+      // Simulate verification process with 3-second delay
+      setTimeout(() => {
+        setIsVerifying(false); // Stop loading
+        setStep(2); // Proceed to next step
+      }, 3000);
     } else {
       alert("Please enter a valid OTP");
     }
@@ -108,7 +128,7 @@ const StudentLogin = () => {
               Access your attendance, resources, and academic progress all in
               one place.
             </p>
-            <div className="student-band flex  items-center justify-center  bg-[#a7d6aa] p-2 mt-9 w-[210px] rounded-full mx-auto lg:mx-0 ">
+            <div className="student-band flex  items-center justify-center  bg-[#a7d6aa] py-2 px-3 mt-9 w-fit gap-1  rounded-full mx-auto lg:mx-0 ">
               <PiStudentFill style={{ fontSize: "20px", color: "black" }} />
               <p className="text-black ml-2 md:ml-0">Track Your Attendance</p>
             </div>
@@ -148,16 +168,22 @@ const StudentLogin = () => {
                     value={email}
                     onChange={handleEmailChange}
                   />
-
+                  {error && (
+                    <p className="text-red-500 text-sm mt-2">{error}</p>
+                  )}
                   <div className="email-btn pt-10 flex relative items-center">
                     <Button
-                      className="w-full p-6"
+                      className={`w-full p-6 mt-4 ${
+                        isButtonDisabled
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-black"
+                      } text-white rounded-md`}
                       onClick={handleDrawerToggle}
                       disabled={isButtonDisabled}
                     >
                       Submit
                     </Button>
-                    <div className="absolute left-[200px]">
+                    <div className="absolute left-[200px] bottom-3">
                       <IoIosArrowRoundForward
                         style={{ color: "grey", fontSize: "30" }}
                       />
@@ -202,19 +228,19 @@ const StudentLogin = () => {
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="/static/images/avatar/1.jpg"
+                      src="https://avatars.githubusercontent.com/u/20?v=4"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="/static/images/avatar/2.jpg"
+                      src="https://avatars.githubusercontent.com/u/26?v=4"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="/static/images/avatar/4.jpg"
+                      src="https://avatars.githubusercontent.com/u/22?v=4"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="/static/images/avatar/5.jpg"
+                      src="https://avatars.githubusercontent.com/u/23?v=4"
                     />
                   </AvatarGroup>
                 </div>
@@ -282,7 +308,18 @@ const StudentLogin = () => {
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    Verify
+                    {isVerifying ? (
+                      <div className="flex items-center gap-3">
+                        <ClipLoader
+                          size={20}
+                          color={"#fff"}
+                          loading={isVerifying}
+                        />
+                        <span>Verify</span>
+                      </div>
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -336,7 +373,7 @@ const StudentLogin = () => {
                           ) : (
                             <>
                               <Button
-                                className="rounded-sm"
+                                className="rounded-sm gap-1"
                                 variant="contained"
                                 onClick={handleOpenCamera}
                                 style={{
@@ -345,6 +382,7 @@ const StudentLogin = () => {
                                   color: "white",
                                 }}
                               >
+                                <IoIosCamera className="text-lg" />
                                 Take Photo
                               </Button>
                               <input

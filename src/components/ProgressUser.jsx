@@ -75,14 +75,14 @@ const ProgressUser = ({
             </svg>
           )}
           <div className="absolute">
-            <Avatar className="w-24 h-24">
+            <Avatar className="w-24 h-24 shadow-xl">
               {" "}
               {/* Adjust width and height here */}
               <AvatarImage src={src} />
             </Avatar>
           </div>
         </div>
-        <div className="">
+        {/* <div className="">
           {isActive && (
             <h1 className="pt-[80px] text-black text-center text-lg">{text}</h1>
           )}
@@ -91,7 +91,7 @@ const ProgressUser = ({
               {description}
             </p>
           )}
-        </div>
+        </div> */}
       </div>
     </>
   );

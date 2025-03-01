@@ -1,3 +1,4 @@
+import Courses from "@/components/course/Courses";
 import FacultySidebar from "@/components/FacultySidebar";
 import Students from "@/components/Students";
 import { useState } from "react";

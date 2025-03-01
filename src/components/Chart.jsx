@@ -3,13 +3,19 @@ import {
   Label,
   Pie,
   PieChart,
+  LabelList,
   Tooltip,
   Cell,
   Bar,
   BarChart,
   CartesianGrid,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
   XAxis,
 } from "recharts";
+import DashProgress from "./DashboardProgress/DashProgress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,23 +38,32 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
 } from "@/components/ui/chart";
 
 // const chartData = [
 //   { status: "Present", count: 120, fill: "#755485" },
 //   { status: "Absent", count: 30, fill: "#27282c" },
 // ];
-
-const barChartData = [
-  { month: "January", present: 120, absent: 80 },
-  { month: "February", present: 100, absent: 90 },
-  { month: "March", present: 150, absent: 70 },
+const chartDatas = [
+  { month: "January", present: 186, absent: 170 },
+  { month: "February", present: 305, absent: 295 },
+  { month: "March", present: 237, absent: 50 },
+  { month: "April", present: 73, absent: 10 },
+  { month: "May", present: 209, absent: 40 },
+  { month: "June", present: 214, absent: 35 },
 ];
 
 const chartConfig = {
-  margin: { top: 20, right: 30, left: 20, bottom: 5 },
-  layout: "vertical",
-  barCategoryGap: "20%",
+  present: {
+    label: "Present",
+    color: "#344bfd", // Customize this color for Present
+  },
+  absent: {
+    label: "Absent",
+    color: "#49a677", // Customize this color for Absent
+  },
 };
 
 const Chart = () => {
@@ -61,18 +76,20 @@ const Chart = () => {
     const storedSubjects = JSON.parse(localStorage.getItem("subjects")) || [];
     setSubjects(storedSubjects);
     if (storedSubjects.length > 0) {
-      setSelectedSubject(storedSubjects[0]);
+      setSelectedSubject(storedSubjects[0].name);
+      console.log(storedSubjects);
     }
   }, []);
   useEffect(() => {
     // Update chart data based on selected subject
-    if (selectedSubject) {
+    const subjectObj = subjects.find((s) => s.name === selectedSubject);
+    if (subjectObj) {
       // Simulated data based on the selected subject
       const data = [
         {
           status: "Present",
           count: Math.floor(Math.random() * 100) + 50,
-          fill: "#755485",
+          fill: "#4a805f",
         },
         {
           status: "Absent",
@@ -82,23 +99,120 @@ const Chart = () => {
       ];
       setChartData(data);
     }
-  }, [selectedSubject]);
+  }, [selectedSubject, subjects]);
   const totalCount = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.count, 0);
   }, [chartData]);
 
   return (
     <>
-      <div className="flex flex-wrap justify-between gap-6">
+      <div className="flex items-center justify-around bg-white flex-wrap">
+        <div className="">
+          <Card className=" py-10 bg-[#fff] shadow-md rounded-2xl ">
+            <CardHeader></CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center gap-20 flex-wrap ">
+                <div className="flex items-center justify-center gap-5">
+                  <div className="bg-black ">
+                    <h1 className="text-white px-2 ">1</h1>
+                  </div>
+                  <DashProgress
+                    color=" #4a805f"
+                    text="Present"
+                    description="Total Present"
+                    percentage={90}
+                  />
+                </div>
+                <div className="flex items-center justify-center gap-5">
+                  <div className="bg-black ">
+                    <h1 className="text-white px-2 ">2</h1>
+                  </div>
+                  <DashProgress
+                    color="#b03d3d"
+                    text="Absent"
+                    description="Total Absent"
+                    percentage={60}
+                  />
+                </div>
+                <div className="flex items-center justify-center gap-5">
+                  <div className="bg-black ">
+                    <h1 className="text-white px-2 ">3</h1>
+                  </div>
+                  <DashProgress
+                    color="#1d68bd"
+                    text="Total Students"
+                    description="Total Students"
+                    percentage={75}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between"></CardFooter>
+          </Card>
+        </div>
+        <div className="">
+          <Card className="rounded-2xl shadow-md">
+            <CardHeader className="items-center pb-4">
+              <CardTitle>Attendance Insights</CardTitle>
+              <CardDescription>
+                Showing total present or absent for the last 6 months
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={chartConfig}
+                className="mx-auto aspect-square max-h-[250px]"
+              >
+                <RadarChart
+                  data={chartDatas}
+                  margin={{
+                    top: -40,
+                    bottom: -10,
+                  }}
+                >
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="line" />}
+                  />
+                  <PolarAngleAxis dataKey="month" />
+                  <PolarGrid />
+                  <Radar dataKey="present" fill="#1d68bd" fillOpacity={0.6} />
+                  <Radar dataKey="absent" fill="#228276" />
+                  <ChartLegend
+                    className="mt-8"
+                    content={<ChartLegendContent />}
+                  />
+                </RadarChart>
+              </ChartContainer>
+            </CardContent>
+            <CardFooter className="flex-col gap-2 pt-4 text-sm">
+              <div className="flex items-center gap-2 font-medium leading-none">
+                Trending up by 5.2% this month{" "}
+                <TrendingUp className="h-4 w-4" />
+              </div>
+              <div className="flex items-center gap-2 leading-none text-muted-foreground">
+                January - June 2024
+              </div>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+      <div className="flex flex-wrap justify-around gap-6 bg-white">
         <div className="w-full md:w-[48%] lg:w-[40%] ">
-          <Card>
+          <Card className=" bg-[#fff] shadow-md rounded-2xl">
             <CardHeader>
-              <CardTitle>Attendance Month</CardTitle>
+              <CardTitle>Attendance Bar Chart</CardTitle>
               <CardDescription>January - June 2024</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig}>
-                <BarChart data={barChartData}>
+                <BarChart
+                  accessibilityLayer
+                  data={chartDatas}
+                  margin={{
+                    top: 20,
+                  }}
+                >
                   <CartesianGrid vertical={false} />
                   <XAxis
                     dataKey="month"
@@ -109,10 +223,34 @@ const Chart = () => {
                   />
                   <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent indicator="dashed" />}
+                    content={<ChartTooltipContent hideLabel />}
                   />
-                  <Bar dataKey="present" fill="#755485" radius={4} />
-                  <Bar dataKey="absent" fill="#27282c" radius={4} />
+                  {/* Present Bar */}
+                  <Bar
+                    dataKey="present"
+                    fill={chartConfig.present.color}
+                    radius={8}
+                  >
+                    <LabelList
+                      position="top"
+                      offset={12}
+                      className="fill-foreground"
+                      fontSize={12}
+                    />
+                  </Bar>
+                  {/* Absent Bar */}
+                  <Bar
+                    dataKey="absent"
+                    fill={chartConfig.absent.color}
+                    radius={8}
+                  >
+                    <LabelList
+                      position="top"
+                      offset={12}
+                      className="fill-foreground"
+                      fontSize={12}
+                    />
+                  </Bar>
                 </BarChart>
               </ChartContainer>
             </CardContent>
@@ -122,7 +260,7 @@ const Chart = () => {
                 <TrendingUp className="h-4 w-4" />
               </div>
               <div className="leading-none text-muted-foreground">
-                Showing total for the last 6 months
+                Showing attendance data for the last 6 months
               </div>
             </CardFooter>
           </Card>
@@ -140,14 +278,14 @@ const Chart = () => {
                 value={selectedSubject}
               >
                 {subjects.map((subject, index) => (
-                  <DropdownMenuRadioItem key={index} value={subject}>
-                    {subject}
+                  <DropdownMenuRadioItem key={index} value={subject.name}>
+                    {subject.subject}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Card className="flex flex-col ">
+          <Card className="flex flex-col  bg-[#fff] rounded-2xl shadow-md">
             <CardHeader className="items-center pb-0">
               <CardTitle>Attendance</CardTitle>
               <CardDescription>January - June 2024</CardDescription>

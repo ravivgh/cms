@@ -5,8 +5,15 @@ import { PiStudentFill } from "react-icons/pi";
 import { Avatar } from "@mui/material";
 import { MdKeyboardDoubleArrowRight, MdCoPresent } from "react-icons/md";
 import { MdOutlineGroups } from "react-icons/md";
+import { BsCalendarDayFill } from "react-icons/bs";
 import { CgLogOut } from "react-icons/cg";
 import { ClipLoader } from "react-spinners";
+import { BsChatSquareTextFill } from "react-icons/bs";
+import { MdMenuBook } from "react-icons/md";
+import { PiVideoConferenceFill } from "react-icons/pi";
+import { MdOutlineCollectionsBookmark } from "react-icons/md";
+import { HiChatAlt2 } from "react-icons/hi";
+import { FaBriefcase } from "react-icons/fa";
 
 function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
   const [loading, setLoading] = useState(false);
@@ -40,14 +47,15 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
             <Link
               to="/dashboard"
               className={`flex items-center text-xl no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
-                selectedOption === "/dashboard"
+                selectedOption === "/dashboard" ||
+                selectedOption === "/admin/profile"
                   ? "bg-white text-black"
                   : "text-white"
               }`}
               onClick={() => setSelectedOption("/dashboard")}
             >
               <i>
-                <BiHomeCircle />
+                <BiHomeCircle className="text-lg" />
               </i>
 
               <span
@@ -74,7 +82,7 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
             >
               <i>
                 {" "}
-                <PiStudentFill />
+                <PiStudentFill className="text-lg" />
               </i>
 
               <span
@@ -100,7 +108,7 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
               onClick={() => setSelectedOption("/attendance")}
             >
               <i>
-                <MdCoPresent />
+                <MdCoPresent className="text-lg" />
               </i>
 
               <span
@@ -125,7 +133,7 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
               onClick={() => setSelectedOption("/faculty")}
             >
               <i>
-                <MdOutlineGroups />
+                <MdOutlineGroups className="text-lg" />
               </i>
 
               <span
@@ -141,6 +149,134 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
           </li>
           <li>
             <Link
+              to="/leave-list"
+              className={`flex items-center text-xl  no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
+                selectedOption === "/leave-list"
+                  ? "bg-white text-black"
+                  : "text-white"
+              }`}
+              onClick={() => setSelectedOption("/leave-list")}
+            >
+              <i>
+                <FaBriefcase className="text-lg" />
+              </i>
+
+              <span
+                className={`${
+                  isSidebarOpen
+                    ? "opacity-100 visible pl-2"
+                    : "opacity-0 invisible"
+                } text-sm`}
+              >
+                LeaveList
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/course"
+              className={`flex items-center text-xl  no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
+                selectedOption === "/course"
+                  ? "bg-white text-black"
+                  : "text-white"
+              }`}
+              onClick={() => setSelectedOption("/course")}
+            >
+              <i>
+                <MdOutlineCollectionsBookmark className="text-lg" />
+              </i>
+
+              <span
+                className={`${
+                  isSidebarOpen
+                    ? "opacity-100 visible pl-2"
+                    : "opacity-0 invisible"
+                } text-sm`}
+              >
+                Course
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/chat"
+              className={`flex items-center text-xl  no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
+                selectedOption === "/chat"
+                  ? "bg-white text-black"
+                  : "text-white"
+              }`}
+              onClick={() => setSelectedOption("/chat")}
+            >
+              <i>
+                <HiChatAlt2 className="text-lg" />
+              </i>
+
+              <span
+                className={`${
+                  isSidebarOpen
+                    ? "opacity-100 visible pl-2"
+                    : "opacity-0 invisible"
+                } text-sm`}
+              >
+                Chat
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/initiate-meet"
+              className={`flex items-center text-xl  no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
+                selectedOption === "/initiate-meet"
+                  ? "bg-white text-black"
+                  : "text-white"
+              }`}
+              onClick={() => setSelectedOption("/initiate-meet")}
+            >
+              <i>
+                <PiVideoConferenceFill className="text-lg" />
+              </i>
+
+              <span
+                className={`${
+                  isSidebarOpen
+                    ? "opacity-100 visible pl-2"
+                    : "opacity-0 invisible"
+                } text-sm`}
+              >
+                Meeting
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/collegemaster"
+              className={`flex items-center text-xl  no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
+                selectedOption === "/collegemaster" ||
+                selectedOption === "/collegemaster/settings/appointment" ||
+                selectedOption === "/collegemaster/settings/academic"
+                  ? "bg-white text-black"
+                  : "text-white"
+              }`}
+              onClick={() => setSelectedOption("/collegemaster")}
+            >
+              <i>
+                <BsCalendarDayFill className="text-lg" />
+              </i>
+
+              <span
+                className={`${
+                  isSidebarOpen
+                    ? "opacity-100 visible pl-2"
+                    : "opacity-0 invisible"
+                } text-sm`}
+              >
+                Calender
+              </span>
+            </Link>
+          </li>
+
+          <li>
+            <Link
               onClick={handleLogout}
               className={`flex items-center text-xl  no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
                 selectedOption === "logout"
@@ -149,7 +285,7 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
               }`}
             >
               <i>
-                <CgLogOut />
+                <CgLogOut className="text-lg" />
               </i>
 
               <span
@@ -164,16 +300,16 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
             </Link>
           </li>
           <div className="mt-auto">
-            <li className="flex items-center justify-center mb-5">
+            {/* <li className="flex items-center justify-center mb-5">
               <Avatar
                 alt="Profile Picture"
                 src={profilePicture}
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: 30,
+                  height: 30,
                 }}
               />
-            </li>
+            </li> */}
             <li className="">
               <a
                 href="#"
@@ -185,7 +321,7 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
                     isSidebarOpen ? "rotate-180" : ""
                   }`}
                 >
-                  <MdKeyboardDoubleArrowRight />
+                  <MdKeyboardDoubleArrowRight className="text-lg" />
                 </i>
                 <span
                   className={`${

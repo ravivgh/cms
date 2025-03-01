@@ -1,614 +1,812 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  CaretSortIcon,
-  ChevronDownIcon,
-  DotsHorizontalIcon,
-} from "@radix-ui/react-icons";
-import TextField from "@mui/material/TextField";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-
-import { Button } from "@/components/ui/button";
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+  Plus,
+  MoreHorizontal,
+  X,
+  FileSpreadsheet,
+  Check,
+  Upload,
+} from "lucide-react";
+import { TextField, Button } from "@mui/material";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Sheet,
+  SheetTrigger,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import Popover from "@mui/material/Popover";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Label, Pie, PieChart, Tooltip } from "recharts";
-import { TrendingUp } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { IoIosClose } from "react-icons/io";
-
-const Cell = () => {
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isPopOpen, setPopOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [subjects, setSubjects] = useState([]);
-  const [chartData, setChartData] = useState([]);
-  const [address, setAddress] = useState("");
+const AdvancedStudentManagement = () => {
+  const [activeView, setActiveView] = useState("grid");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("name");
+  const [importStatus, setImportStatus] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
   const [name, setName] = useState("");
+  const [className, setClassName] = useState("");
+  const [address, setAddress] = useState("");
+  const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
-  const [section, setSection] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const handlePopoverOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-    setPopOpen(true);
-  };
+  const [classFilter, setClassFilter] = useState("all");
+  const [studentData, setStudentData] = useState([
+    {
+      id: "ST001",
+      name: "John Doe",
+      className: "FYBCA",
+      address: "123 Main Street",
+      mobile: "(555) 123-4567",
+      email: "john.doe@example.com",
+      avatar: "https://avatars.githubusercontent.com/u/1?v=4",
+    },
+    {
+      id: "ST002",
+      name: "Jane Smith",
+      className: "SYBCA",
+      address: "456 Oak Avenue",
+      mobile: "(555) 234-5678",
+      email: "jane.smith@example.com",
+      avatar: "https://avatars.githubusercontent.com/u/2?v=4",
+    },
+    {
+      id: "ST003",
+      name: "Mike Johnson",
+      className: "TYBCA",
+      address: "789 Pine Road",
+      mobile: "(555) 345-6789",
+      email: "mike.johnson@example.com",
+      avatar: "https://avatars.githubusercontent.com/u/3?v=4",
+    },
+  ]);
+  const [editStudent, setEditStudent] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [deleteStudentId, setDeleteStudentId] = useState(null);
+  const [errors, setErrors] = useState({
+    name: "",
+    className: "",
+    mobile: "",
+    email: "",
+  });
+  // Calculate unique classes and their student counts
+  const classStats = studentData.reduce((acc, student) => {
+    acc[student.className] = (acc[student.className] || 0) + 1;
+    return acc;
+  }, {});
+  const uniqueClasses = Object.keys(classStats);
+  const validateFields = () => {
+    const newErrors = {};
 
-  const handlePopoverClose = () => {
-    setAnchorEl(null);
-    setPopOpen(false);
-  };
-  const sections = {
-    FY: ["FY-A", "FY-B", "FY-C", "FY-D", "FY-E"],
-  };
-  const selectedYear = "FY";
-  const handleSectionChange = (value) => {
-    setSection(value);
-    console.log(value);
-  };
-  // const chartData = [
-  //   { status: "Present", count: 120, fill: "#755485" },
-  //   { status: "Absent", count: 30, fill: "#27282c" },
-  // ];
-  useEffect(() => {
-    // Retrieve subjects from local storage
-    const storedSubjects = JSON.parse(localStorage.getItem("subjects")) || [];
-    setSubjects(storedSubjects);
-  }, []);
-
-  useEffect(() => {
-    // Simulated data based on the selected subject
-    if (subjects.length > 0) {
-      const data = subjects.map((subject, index) => ({
-        subject,
-        status: "Present",
-
-        count: Math.floor(Math.random() * 100) + 50,
-        fill: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // Random color
-      }));
-      setChartData(data);
+    if (!name.trim()) {
+      newErrors.name = "Name is required";
     }
-  }, [subjects]);
-  const totalCount = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.count, 0);
-  }, [chartData]);
+
+    if (!className.trim()) {
+      newErrors.className = "Class is required";
+    }
+
+    if (!mobile.trim()) {
+      newErrors.mobile = "Mobile number is required";
+    } else if (!/^[0-9()-\s]{10,}$/.test(mobile.replace(/\s/g, ""))) {
+      newErrors.mobile = "Please enter a valid mobile number";
+    }
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  const handleAddStudent = (e) => {
+    e.preventDefault();
+    if (!validateFields()) return;
+
+    const newStudent = {
+      id: `ST${Math.floor(Math.random() * 1000)}`,
+      name,
+      className,
+      address,
+      mobile,
+      email,
+      avatar: `https://example.com/default-avatar.jpg`,
+    };
+    setStudentData([...studentData, newStudent]);
+    setIsAddModalOpen(false);
+    setName("");
+    setClassName("");
+    setAddress("");
+    setMobile("");
+    setEmail("");
+  };
+
+  const handleEditStudent = (student) => {
+    setEditStudent(student);
+    setName(student.name);
+    setClassName(student.className);
+    setAddress(student.address);
+    setMobile(student.mobile);
+    setEmail(student.email);
+    setOpenDropdownId(null);
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    const updatedStudent = {
+      ...editStudent,
+      name,
+      className,
+      address,
+      mobile,
+      email,
+      avatar: `https://example.com/default-avatar.jpg`,
+    };
+    setStudentData(
+      studentData.map((student) =>
+        student.id === updatedStudent.id ? updatedStudent : student
+      )
+    );
+    setEditStudent(null);
+    setName("");
+    setClassName("");
+    setAddress("");
+    setMobile("");
+    setEmail("");
+  };
+
+  const handleDeleteClick = (id) => {
+    setDeleteStudentId(id);
+    setOpenDropdownId(null);
+  };
+
+  const confirmDelete = () => {
+    setStudentData(
+      studentData.filter((student) => student.id !== deleteStudentId)
+    );
+    setDeleteStudentId(null);
+  };
+
+  const cancelDelete = () => {
+    setDeleteStudentId(null);
+  };
+
+  const filteredData = studentData
+    .filter((student) => {
+      if (classFilter === "all") return true;
+      return student.className === classFilter;
+    })
+    .filter(
+      (student) =>
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.mobile.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      const order = sortOrder === "asc" ? 1 : -1;
+      return a[sortBy].localeCompare(b[sortBy]) * order;
+    });
+  const totalStudents = filteredData.length;
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setImportStatus("processing");
+      setTimeout(() => {
+        const sampleImportedData = [
+          {
+            id: `ST${Math.floor(Math.random() * 1000)}`,
+            name: "Imported Student",
+            className: "12A",
+            address: "999 Import Lane",
+            mobile: "(555) 999-8888",
+            email: "import.student@example.com",
+            avatar: "https://example.com/default-avatar.jpg",
+          },
+        ];
+        setStudentData((prev) => [...prev, ...sampleImportedData]);
+        setImportStatus("success");
+        setTimeout(() => {
+          setImportStatus(null);
+          setIsImportModalOpen(false);
+        }, 2000);
+      }, 1500);
+    }
+  };
+
+  const ImportModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold">Import Faculty Data</h2>
+          <button
+            onClick={() => setIsImportModalOpen(false)}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {importStatus === "success" ? (
+          <div className="text-center py-8">
+            <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <Check className="w-6 h-6 text-green-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">
+              Import Successful
+            </h3>
+            <p className="text-gray-500 mt-2">
+              Your faculty data has been imported successfully.
+            </p>
+          </div>
+        ) : importStatus === "processing" ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Processing your file...</p>
+          </div>
+        ) : (
+          <>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <FileSpreadsheet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Upload Excel File
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Upload your Excel file containing students data. The file should
+                include columns for name, class, address, email, and phone
+                number.
+              </p>
+              <label className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
+                <Upload className="w-4 h-4 mr-2" />
+                Choose File
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileUpload}
+                />
+              </label>
+            </div>
+
+            <div className="mt-6">
+              <h4 className="font-medium text-gray-900 mb-2">
+                Template Format
+              </h4>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Required columns:</p>
+                <ul className="text-sm text-gray-600 mt-2 list-disc list-inside">
+                  <li>Name (Full name of faculty member)</li>
+                  <li>Class (Must match existing class)</li>
+                  <li>Address (Full address)</li>
+                  <li>Email (Valid email address)</li>
+                  <li>Phone (Valid phone number)</li>
+                </ul>
+              </div>
+            </div>
+          </>
+        )}
+
+        {!importStatus && (
+          <div className="mt-6">
+            <button
+              onClick={() => window.open("/student.xlsx")}
+              className="text-blue-600 hover:text-blue-700 text-sm"
+            >
+              Download sample template
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const textFieldStyles = {
+    "& .MuiOutlinedInput-root": {
+      color: "black",
+      width: "350px",
+      "& fieldset": {
+        borderColor: "rgba(0, 0, 0, 0.23)",
+      },
+      "&:hover fieldset": {
+        borderColor: "black",
+      },
+      "&.Mui-focused fieldset": {
+        borderColor: "black",
+      },
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: "rgba(0, 0, 0, 0.23)",
+      },
+    },
+    "& .MuiInputLabel-outlined": {
+      color: "rgba(0, 0, 0, 0.7)",
+      "&.Mui-focused": {
+        color: "black",
+      },
+    },
+    "& .MuiFormHelperText-root": {
+      color: "#d32f2f",
+      marginLeft: "0",
+    },
+  };
+
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
-            <DotsHorizontalIcon className="h-4 w-4 text-black" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => setIsSheetOpen(true)}>
-            Edit Profile
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsAlertOpen(true)}>
-            Delete Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handlePopoverOpen}>View</DropdownMenuItem>
-        </DropdownMenuContent>
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Edit Profile</SheetTitle>
-              <SheetDescription>
-                Make changes to your profile here. Click save when
-              </SheetDescription>
-            </SheetHeader>
-            <div className="flex items-center flex-col justify-center space-y-3 pt-5">
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="mb-8">
+        <div className="text-base font-medium text-gray-700 mb-3">
+          Total Students: {totalStudents}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {uniqueClasses.map((className) => (
+            <div
+              key={className}
+              className="bg-white rounded-lg p-4 shadow-sm border border-[#b2b2b2]"
+            >
+              <h3 className="text-sm font-medium text-gray-800 bg-[#d4ecd4] w-fit px-2 py-1 rounded-full">
+                {className}
+              </h3>
+              <p className="mt-2 text-2xl font-semibold text-gray-900">
+                {classStats[className]}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-t-2xl shadow-sm p-6 mb-6 bg-gradient-to-r from-[#1a4f8b] to-[#2168b7]">
+        <div className="flex flex-wrap items-center justify-between gap-6">
+          <div className="relative flex-grow md:max-w-xs">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search students..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 
+                  bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center space-x-3 bg-white/10 rounded-lg px-3 py-2 backdrop-blur-sm">
+              <span className="text-sm text-gray-100">Filter by Class:</span>
+              <select
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-md focus:outline-none bg-white/10 text-gray-100 border border-white/20"
+              >
+                <option value="all">All Classes</option>
+                {uniqueClasses.map((className) => (
+                  <option
+                    key={className}
+                    value={className}
+                    className="text-black"
+                  >
+                    {className}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center space-x-3 bg-white/10 rounded-lg px-3 py-2 backdrop-blur-sm">
+              <span className="text-sm text-gray-100">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-1.5 rounded-md focus:outline-none bg-white/10 text-gray-100 border border-white/20"
+              >
+                <option value="name" className="text-black">
+                  Name
+                </option>
+                <option value="className" className="text-black">
+                  Class
+                </option>
+                <option value="address" className="text-black">
+                  Address
+                </option>
+                <option value="mobile" className="text-black">
+                  Mobile
+                </option>
+                <option value="email" className="text-black">
+                  Email
+                </option>
+              </select>
+              <button
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                className="p-1.5 hover:bg-white/10 rounded-md transition-colors"
+              >
+                {sortOrder === "asc" ? (
+                  <SortAsc className="w-5 h-5 text-gray-100" />
+                ) : (
+                  <SortDesc className="w-5 h-5 text-gray-100" />
+                )}
+              </button>
+            </div>
+            <div className="flex items-center bg-white/10 rounded-lg backdrop-blur-sm p-1">
+              <button
+                onClick={() => setActiveView("grid")}
+                className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                  activeView === "grid"
+                    ? "bg-white text-blue-600"
+                    : "text-gray-100 hover:bg-white/10"
+                }`}
+              >
+                Grid
+              </button>
+              <button
+                onClick={() => setActiveView("list")}
+                className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                  activeView === "list"
+                    ? "bg-white text-blue-600"
+                    : "text-gray-100 hover:bg-white/10"
+                }`}
+              >
+                List
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors text-sm"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import Excel
+              </button>
+              <Sheet open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                <SheetTrigger asChild>
+                  <button className="flex items-center px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors text-sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Student
+                  </button>
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  className="w-[400px] overflow-y-auto p-0 border-0"
+                >
+                  <SheetHeader className="bg-black text-white w-full py-10">
+                    <div className="px-5">
+                      <h1 className="text-lg font-medium">Add Student</h1>
+                      <p className="text-gray-400">
+                        Enter student information details
+                      </p>
+                    </div>
+                  </SheetHeader>
+                  <form
+                    onSubmit={handleAddStudent}
+                    className="mt-6 space-y-4 px-4"
+                  >
+                    <div className="flex flex-col space-y-4 pt-5">
+                      <TextField
+                        label="Name"
+                        variant="outlined"
+                        value={name}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          setErrors((prev) => ({ ...prev, name: "" }));
+                        }}
+                        error={!!errors.name}
+                        helperText={errors.name}
+                        required
+                        sx={textFieldStyles}
+                      />
+                      <TextField
+                        label="Class"
+                        variant="outlined"
+                        value={className}
+                        onChange={(e) => {
+                          setClassName(e.target.value);
+                          setErrors((prev) => ({ ...prev, className: "" }));
+                        }}
+                        error={!!errors.className}
+                        helperText={errors.className}
+                        required
+                        sx={textFieldStyles}
+                      />
+                      <TextField
+                        label="Address"
+                        variant="outlined"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        multiline
+                        rows={2}
+                        sx={textFieldStyles}
+                      />
+                      <TextField
+                        label="Mobile"
+                        variant="outlined"
+                        value={mobile}
+                        onChange={(e) => {
+                          setMobile(e.target.value);
+                          setErrors((prev) => ({ ...prev, mobile: "" }));
+                        }}
+                        error={!!errors.mobile}
+                        helperText={errors.mobile}
+                        required
+                        sx={textFieldStyles}
+                      />
+                      <TextField
+                        label="Email"
+                        variant="outlined"
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setErrors((prev) => ({ ...prev, email: "" }));
+                        }}
+                        error={!!errors.email}
+                        helperText={errors.email}
+                        required
+                        sx={textFieldStyles}
+                      />
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        className="bg-black text-white mt-4 w-fit rounded-full"
+                      >
+                        Save
+                      </Button>
+                    </div>
+                  </form>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {activeView === "grid" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredData.map((student) => (
+            <div
+              key={student.id}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center">
+                  <img
+                    src={student.avatar}
+                    alt={student.name}
+                    className="w-12 h-12 rounded-full mr-4"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {student.name}
+                    </h3>
+                    <p className="text-sm text-gray-500">{student.className}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <DropdownMenu
+                    open={openDropdownId === student.id}
+                    onOpenChange={(open) =>
+                      setOpenDropdownId(open ? student.id : null)
+                    }
+                  >
+                    <DropdownMenuTrigger asChild>
+                      <button className="text-gray-400 hover:text-gray-600">
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        onClick={() => handleEditStudent(student)}
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteClick(student.id)}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="font-medium mr-2">Address:</span>
+                  {student.address}
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="font-medium mr-2">Mobile:</span>
+                  {student.mobile}
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="font-medium mr-2">Email:</span>
+                  {student.email}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Class
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Address
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Mobile
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredData.map((student) => (
+                <tr key={student.id} className="border-b hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <img
+                        src={student.avatar}
+                        alt={student.name}
+                        className="w-8 h-8 rounded-full mr-3"
+                      />
+                      <div className="font-medium text-gray-900">
+                        {student.name}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-gray-900">
+                    {student.className}
+                  </td>
+                  <td className="px-6 py-4 text-gray-900">{student.address}</td>
+                  <td className="px-6 py-4 text-gray-900">{student.mobile}</td>
+                  <td className="px-6 py-4 text-gray-900">{student.email}</td>
+                  <td className="px-6 py-4">
+                    <DropdownMenu
+                      open={openDropdownId === student.id}
+                      onOpenChange={(open) =>
+                        setOpenDropdownId(open ? student.id : null)
+                      }
+                    >
+                      <DropdownMenuTrigger asChild>
+                        <button className="text-gray-400 hover:text-gray-600">
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={() => handleEditStudent(student)}
+                        >
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteClick(student.id)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      {editStudent && (
+        <Dialog open={!!editStudent} onOpenChange={() => setEditStudent(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Student</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSaveEdit} className="space-y-4">
               <TextField
-                id="outlined-basic"
                 label="Name"
                 variant="outlined"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter here"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    color: "black",
-                    width: "350px",
-
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "black",
-                    },
-                  },
-                  "& .MuiInputLabel-outlined": {
-                    color: "black",
-                  },
-                }}
+                fullWidth
               />
-              <div>
-                <Select onValueChange={handleSectionChange} value={section}>
-                  <SelectTrigger className="w-[350px] border border-black">
-                    <SelectValue placeholder="Select a section" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Sections</SelectLabel>
-                      {sections[selectedYear].map((sec) => (
-                        <SelectItem key={sec} value={sec}>
-                          {sec}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
               <TextField
-                id="outlined-basic"
+                label="Class"
+                variant="outlined"
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+                fullWidth
+              />
+              <TextField
                 label="Address"
                 variant="outlined"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Enter here"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    color: "black",
-                    width: "350px",
-
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "black",
-                    },
-                  },
-                  "& .MuiInputLabel-outlined": {
-                    color: "black",
-                  },
-                }}
+                fullWidth
               />
-
               <TextField
-                id="outlined-basic"
+                label="Mobile"
+                variant="outlined"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                fullWidth
+              />
+              <TextField
                 label="Email"
                 variant="outlined"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter here"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    color: "black",
-                    width: "350px",
-
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "black",
-                    },
-                  },
-                  "& .MuiInputLabel-outlined": {
-                    color: "black",
-                  },
-                }}
+                fullWidth
               />
-              <TextField
-                id="outlined-basic"
-                label="Phone number"
-                variant="outlined"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter here"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    color: "black",
-                    width: "350px",
-
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "black",
-                    },
-                  },
-                  "& .MuiInputLabel-outlined": {
-                    color: "black",
-                  },
-                }}
-              />
-              <div className="">
-                <Button className="bg-black text-white mt-14 w-[350px]">
+              <div className="flex justify-end space-x-2">
+                <Button onClick={() => setEditStudent(null)} variant="outlined">
+                  Cancel
+                </Button>
+                <Button type="submit" variant="contained">
                   Save
                 </Button>
               </div>
-            </div>
-          </SheetContent>
-        </Sheet>
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the
-                profile.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setIsAlertOpen(false)}>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteStudentId && (
+        <Dialog open={!!deleteStudentId} onOpenChange={cancelDelete}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Delete</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete{" "}
+                {studentData.find((s) => s.id === deleteStudentId)?.name}? This
+                action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outlined" onClick={cancelDelete}>
                 Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  setIsAlertOpen(false);
-                }}
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={confirmDelete}
+                sx={{ backgroundColor: "#dc2626" }}
               >
                 Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </DropdownMenu>
-      <Popover
-        open={isPopOpen}
-        anchorEl={anchorEl}
-        onClose={handlePopoverClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        className="mr-10"
-      >
-        <div className="">
-          {" "}
-          <div className="w-full max-w-sm mx-auto">
-            <Card className="flex flex-col ">
-              <div className="flex justify-end p-3">
-                <IoIosClose
-                  onClick={() => setPopOpen(false)}
-                  className="text-[30px]  text-gray-600  border rounded-full border-[#a0a0a086] hover:bg-[#00000071] hover:text-white"
-                />
-              </div>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-              <CardHeader className="items-center pb-0">
-                <CardTitle>Attendance</CardTitle>
-                <CardDescription>January - June 2024</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1 pb-0">
-                <div className="mx-auto aspect-square max-h-[250px] w-full flex justify-center">
-                  <PieChart width={250} height={250}>
-                    <Tooltip
-                      content={({ payload }) => {
-                        if (payload && payload.length) {
-                          const { subject, status, count } = payload[0].payload;
-                          return (
-                            <div className="custom-tooltip">
-                              <p className="label">{`${subject} - ${status}`}</p>
-                              <p className="intro">{`Count: ${count}`}</p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Pie
-                      data={chartData}
-                      dataKey="count"
-                      nameKey="status"
-                      innerRadius={60}
-                      outerRadius={80}
-                      strokeWidth={5}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                      <Label
-                        content={({ viewBox }) => {
-                          if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                            return (
-                              <text
-                                x={viewBox.cx}
-                                y={viewBox.cy}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                              >
-                                <tspan
-                                  x={viewBox.cx}
-                                  y={viewBox.cy}
-                                  className="text-foreground text-3xl font-bold"
-                                >
-                                  {totalCount.toLocaleString()}
-                                </tspan>
-                                <tspan
-                                  x={viewBox.cx}
-                                  y={(viewBox.cy || 0) + 24}
-                                  className="text-muted-foreground"
-                                >
-                                  Attendance
-                                </tspan>
-                              </text>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                    </Pie>
-                  </PieChart>
-                </div>
-              </CardContent>
-              <CardFooter className="flex-col gap-2 text-sm">
-                <div className="flex items-center gap-2 font-medium leading-none">
-                  Trending up by 5.2% this month{" "}
-                  <TrendingUp className="h-4 w-4" />
-                </div>
-                <div className="leading-none text-muted-foreground">
-                  Showing total attendance for the last 6 months
-                </div>
-              </CardFooter>
-            </Card>
-          </div>
-        </div>
-      </Popover>
-    </>
+      {isImportModalOpen && <ImportModal />}
+    </div>
   );
 };
 
-// Sample data
-const data = [
-  {
-    id: "m5gr84i9",
-    name: "manish raj",
-    class: "FYA",
-    address: "123 Main St",
-    mobile: "123-456-7890",
-    email: "johndoe@example.com",
-  },
-  {
-    id: "3u1reuv4",
-    name: "Jane Smith",
-    class: "FYA",
-    address: "456 Elm St",
-    mobile: "987-654-3210",
-    email: "janesmith@example.com",
-  },
-  {
-    id: "3u1reuv4",
-    name: "Jane Smith",
-    class: "FYA",
-    address: "456 Elm St",
-    mobile: "987-654-3210",
-    email: "janesmith@example.com",
-  },
-];
-
-// Column definitions
-const columns = [
-  {
-    accessorKey: "id",
-    header: "ID",
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-  },
-  {
-    accessorKey: "class",
-    header: "Class",
-  },
-  {
-    accessorKey: "address",
-    header: "Address",
-  },
-  {
-    accessorKey: "mobile",
-    header: "Mobile",
-  },
-  {
-    accessorKey: "email",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Email
-          <CaretSortIcon className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: Cell,
-  },
-];
-
-export function AddStudents() {
-  const [sorting, setSorting] = useState([]);
-  const [columnFilters, setColumnFilters] = useState([]);
-  const [columnVisibility, setColumnVisibility] = useState({});
-  const [rowSelection, setRowSelection] = useState({});
-
-  const table = useReactTable({
-    data,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
-  });
-
-  return (
-    <div className="w-full text-black">
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter Name..."
-          value={table.getColumn("name")?.getFilterValue() ?? ""}
-          onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="ml-auto">
-              Columns <ChevronDownIcon className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-export default AddStudents;
+export default AdvancedStudentManagement;

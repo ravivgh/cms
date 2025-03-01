@@ -17,13 +17,15 @@ const MonthSelection = ({ selectedMonth, onSelectDate }) => {
   const [selectedDate, setSelectedDate] = useState(today);
 
   return (
-    <div className="monthSection flex items-center gap-1">
-      <p className="text-black">Month : </p>
+    <div className="monthSection flex items-center gap-3  ">
+      <p className="text-gray-800 bg-[#d9d9d9] px-3 rounded-full text-[14px] py-1">
+        Select Month{" "}
+      </p>
       <Popover>
         <PopoverTrigger>
           <Button
             variant="outline"
-            className="flex gap-2 items-center text-white bg-black"
+            className="flex gap-2 items-center text-white  bg-[#3f3f3f]"
           >
             <CalendarDays className="h-5 w-5 " />
             {month

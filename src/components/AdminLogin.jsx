@@ -10,6 +10,8 @@ import { useNavigate } from "react-router-dom";
 import ClipLoader from "react-spinners/ClipLoader";
 import Avatar from "@mui/material/Avatar";
 import AvatarGroup from "@mui/material/AvatarGroup";
+import { IoIosCamera } from "react-icons/io";
+
 import {
   InputOTP,
   InputOTPGroup,
@@ -30,16 +32,34 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
   const navigate = useNavigate();
 
-  const isButtonDisabled = !email || !password;
+  // const isButtonDisabled = !email || !password;
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailPattern.test(e.target.value)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+    updateButtonState(e.target.value, password);
   };
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
+    if (e.target.value.length !== 6) {
+      setPasswordError("Password must be exactly 6 characters long.");
+    } else {
+      setPasswordError("");
+    }
+    updateButtonState(email, e.target.value);
   };
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -55,9 +75,23 @@ const AdminLogin = () => {
   };
   const handleVerify = () => {
     if (isOtpValid) {
-      setStep(2);
+      setIsVerifying(true);
+      setTimeout(() => {
+        setIsVerifying(false);
+        setStep(2);
+      }, 3000);
     } else {
       alert("Please enter a valid OTP");
+    }
+  };
+  const updateButtonState = (email, password) => {
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const isPasswordValid = password.length === 6;
+
+    if (emailPattern.test(email) && isPasswordValid) {
+      setIsButtonDisabled(false);
+    } else {
+      setIsButtonDisabled(true);
     }
   };
 
@@ -115,7 +149,7 @@ const AdminLogin = () => {
               information efficiently.
             </p>
 
-            <div className="admin-band  flex  items-center justify-center  bg-[#acc7e7]  p-2 mt-9 w-[190px] rounded-full mx-auto lg:mx-0 ">
+            <div className="admin-band  flex  items-center justify-center  bg-[#acc7e7]  px-3 py-2 mt-9 w-fit  rounded-full mx-auto lg:mx-0 gap-2">
               <MdOutlineAdminPanelSettings
                 style={{ fontSize: "20px", color: "black" }}
               />
@@ -157,6 +191,9 @@ const AdminLogin = () => {
                     value={email}
                     onChange={handleEmailChange}
                   />
+                  {emailError && (
+                    <p className="text-red-500 text-sm mt-2">{emailError}</p>
+                  )}
                   <div className="password-showcase pt-2 relative">
                     <label htmlFor="password" className="text-black block">
                       Password
@@ -176,9 +213,16 @@ const AdminLogin = () => {
                       {showPassword ? <FaEye /> : <FaEyeSlash />}
                     </div>
                   </div>
+                  {passwordError && (
+                    <p className="text-red-500 text-sm mt-2">{passwordError}</p>
+                  )}
                   <div className="btn pt-10 flex relative items-center">
                     <Button
-                      className="w-full p-6"
+                      className={`w-full p-6  ${
+                        isButtonDisabled
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-black"
+                      } text-white rounded-md`}
                       onClick={handleDrawerToggle}
                       disabled={isButtonDisabled}
                     >
@@ -213,7 +257,11 @@ const AdminLogin = () => {
         </div>
       </div>
       {isDrawerOpen && (
-        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <Drawer
+          open={isDrawerOpen}
+          onOpenChange={setIsDrawerOpen}
+          className="bg-black"
+        >
           <DrawerContent>
             {step === 1 && (
               <div className="flex items-center justify-center flex-col py-5">
@@ -229,19 +277,19 @@ const AdminLogin = () => {
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="/static/images/avatar/1.jpg"
+                      src="https://cdn.prod.website-files.com/608e9cc36cbcc089f0998643/6734a14081a246fbb68851d7_Design%20Templates-Portrait_Intervue%20(334%20x%20212%20px)%20(6).png"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="/static/images/avatar/2.jpg"
+                      src="https://cdn.prod.website-files.com/608e9cc36cbcc089f0998643/6734a11ab27574be137c4ca1_Design%20Templates-Portrait_Intervue%20(19)%201%20(1).png"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="/static/images/avatar/4.jpg"
+                      src="https://cdn.prod.website-files.com/608e9cc36cbcc089f0998643/6734a0fb60d081bdda9028b5_Design%20Templates-Portrait_Intervue%20(19)%201.png"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="/static/images/avatar/5.jpg"
+                      src="https://st.depositphotos.com/63571822/54892/i/450/depositphotos_548923552-stock-photo-young-man-going-job-interview.jpg"
                     />
                   </AvatarGroup>
                 </div>
@@ -309,7 +357,18 @@ const AdminLogin = () => {
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    Verify
+                    {isVerifying ? (
+                      <div className="flex items-center gap-3">
+                        <ClipLoader
+                          size={20}
+                          color={"#fff"}
+                          loading={isVerifying}
+                        />
+                        <span>Verify</span>
+                      </div>
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -340,17 +399,20 @@ const AdminLogin = () => {
                       }}
                     />
                     <div className="profile-content pt-8">
-                      <div className="front flex items-center justify-around flex-wrap">
-                        <div className="take-profile">
-                          <Avatar
-                            alt="Profile Picture"
-                            src={profilePicture}
-                            sx={{
-                              width: 190,
-                              height: 190,
-                            }}
-                          />
+                      <div className="front flex items-center justify-around flex-wrap ">
+                        <div className="author-image-container">
+                          <div className="take-profile">
+                            <Avatar
+                              alt="Profile Picture"
+                              src={profilePicture}
+                              sx={{
+                                width: 190,
+                                height: 190,
+                              }}
+                            />
+                          </div>
                         </div>
+
                         <div className="profile-options ">
                           {isCameraOpen ? (
                             <div className="camera-container">
@@ -363,7 +425,7 @@ const AdminLogin = () => {
                           ) : (
                             <>
                               <Button
-                                className="rounded-sm"
+                                className="rounded-sm gap-1"
                                 variant="contained"
                                 onClick={handleOpenCamera}
                                 style={{
@@ -372,6 +434,7 @@ const AdminLogin = () => {
                                   color: "white",
                                 }}
                               >
+                                <IoIosCamera className="text-lg" />
                                 Take Photo
                               </Button>
                               <input

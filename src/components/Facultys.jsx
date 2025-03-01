@@ -5,7 +5,9 @@ const Facultys = () => {
   return (
     <>
       <div className="bg-[#f7f7f7] p-5 rounded-lg">
-        <h1 className="text-black py-10 text-2xl">Faculty Details</h1>
+        <h1 className="text-black py-10 text-2xl font-medium">
+          Faculty Details
+        </h1>
         <hr
           className="mx-auto bg-[#0000003b] my-2 rounded-sm"
           style={{

@@ -19,9 +19,11 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { IoIosArrowRoundForward } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import ClipLoader from "react-spinners/ClipLoader";
+import { IoIosCamera } from "react-icons/io";
 
 const StudentLogin = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [step, setStep] = useState(1);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
@@ -32,14 +34,41 @@ const StudentLogin = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const isButtonDisabled = !email || !password;
-
+  // const isButtonDisabled = !email || !password;
+  const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailPattern.test(e.target.value)) {
+      setError("Please enter a valid email address");
+      setIsButtonDisabled(true);
+    } else {
+      setError("");
+      updateButtonState(e.target.value, password);
+    }
   };
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
+    if (e.target.value.length !== 6) {
+      setPasswordError("Password must be exactly 6 characters long.");
+    } else {
+      setPasswordError("");
+    }
+    updateButtonState(email, e.target.value);
+  };
+  const updateButtonState = (email, password) => {
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const isPasswordValid = password.length === 6;
+
+    if (emailPattern.test(email) && isPasswordValid) {
+      setIsButtonDisabled(false);
+    } else {
+      setIsButtonDisabled(true);
+    }
   };
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -56,7 +85,11 @@ const StudentLogin = () => {
   };
   const handleVerify = () => {
     if (isOtpValid) {
-      setStep(2);
+      setIsVerifying(true);
+      setTimeout(() => {
+        setIsVerifying(false);
+        setStep(2);
+      }, 3000);
     } else {
       alert("Please enter a valid OTP");
     }
@@ -116,7 +149,7 @@ const StudentLogin = () => {
               Manage your classes, track student attendance, and more with our
               comprehensive tools.
             </p>
-            <div className="faulty-band flex  items-center justify-center  bg-[#f1ce8b] p-2 mt-9 w-[250px] rounded-full mx-auto lg:mx-0 ">
+            <div className="faulty-band flex  items-center justify-center  bg-[#f1ce8b] py-2 px-3 gap-1 mt-9 w-fit  rounded-full mx-auto lg:mx-0 ">
               <MdSupervisorAccount
                 style={{ fontSize: "20px", color: "black" }}
               />
@@ -160,6 +193,9 @@ const StudentLogin = () => {
                     value={email}
                     onChange={handleEmailChange}
                   />
+                  {error && (
+                    <p className="text-red-500 text-sm mt-2">{error}</p>
+                  )}
                   <div className="password-showcase pt-2 relative">
                     <label htmlFor="password" className="text-black block">
                       Password
@@ -171,6 +207,7 @@ const StudentLogin = () => {
                       value={password}
                       onChange={handlePasswordChange}
                     />
+
                     <div
                       className="absolute bottom-4 left-80"
                       onClick={togglePasswordVisibility}
@@ -179,9 +216,16 @@ const StudentLogin = () => {
                       {showPassword ? <FaEye /> : <FaEyeSlash />}
                     </div>
                   </div>
+                  {passwordError && (
+                    <p className="text-red-500 text-sm mt-2">{passwordError}</p>
+                  )}
                   <div className="btn pt-10 flex relative items-center">
                     <Button
-                      className="w-full p-6"
+                      className={`w-full p-6  ${
+                        isButtonDisabled
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-black"
+                      } text-white rounded-md`}
                       onClick={handleDrawerToggle}
                       disabled={isButtonDisabled}
                     >
@@ -232,19 +276,19 @@ const StudentLogin = () => {
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="/static/images/avatar/1.jpg"
+                      src="https://avatars.githubusercontent.com/u/34?v=4"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="/static/images/avatar/2.jpg"
+                      src="https://avatars.githubusercontent.com/u/46?v=4"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="/static/images/avatar/4.jpg"
+                      src="https://avatars.githubusercontent.com/u/4?v=4"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="/static/images/avatar/5.jpg"
+                      src="https://avatars.githubusercontent.com/u/3?v=4"
                     />
                   </AvatarGroup>
                 </div>
@@ -312,7 +356,18 @@ const StudentLogin = () => {
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    Verify
+                    {isVerifying ? (
+                      <div className="flex items-center gap-3">
+                        <ClipLoader
+                          size={20}
+                          color={"#fff"}
+                          loading={isVerifying}
+                        />
+                        <span>Verify</span>
+                      </div>
+                    ) : (
+                      "Verify"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -366,7 +421,7 @@ const StudentLogin = () => {
                           ) : (
                             <>
                               <Button
-                                className="rounded-sm"
+                                className="rounded-sm gap-1"
                                 variant="contained"
                                 onClick={handleOpenCamera}
                                 style={{
@@ -375,6 +430,7 @@ const StudentLogin = () => {
                                   color: "white",
                                 }}
                               >
+                                <IoIosCamera className="text-lg" />
                                 Take Photo
                               </Button>
                               <input

@@ -1,182 +1,210 @@
 // eslint-disable-next-line no-unused-vars
 import React, { useEffect, useState } from "react";
 import MonthSelection from "./MonthSelection";
-import Cards from "./Card";
-import { MdOutlineGroups } from "react-icons/md";
+import CardD from "./Card";
 import { GraduationCap, TrendingDown, TrendingUp, Library } from "lucide-react";
-import { Pie, PieChart, Tooltip, Cell, Label } from "recharts";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { VscVerifiedFilled } from "react-icons/vsc";
 import Chart from "./Chart";
+import { Button } from "./ui/button";
+import { TbReport } from "react-icons/tb";
+import { Link } from "react-router-dom";
 const FacultyDashboard = ({ selectedMonth }) => {
-  const [subjects, setSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [chartData, setChartData] = useState([]);
-  const [name, setName] = useState("om");
-  useEffect(() => {
-    // Retrieve subjects from local storage
-    const storedSubjects = JSON.parse(localStorage.getItem("subjects")) || [];
-    setSubjects(storedSubjects);
+  // const [subjects, setSubjects] = useState([]);
+  // const [selectedSubject, setSelectedSubject] = useState(null);
+  // const [chartData, setChartData] = useState([]);
+  // const [name, setName] = useState("om");
+  // useEffect(() => {
+  //   // Retrieve subjects from local storage
+  //   const storedSubjects = JSON.parse(localStorage.getItem("subjects")) || [];
+  //   setSubjects(storedSubjects);
 
-    // Retrieve faculty-specific subjects
-    const facultySubjects =
-      JSON.parse(localStorage.getItem("facultySubjects")) || {};
-    if (facultySubjects[name]) {
-      setSelectedSubject(facultySubjects[name][0]); // Set default to first subject
-    }
-  }, [name]);
-  useEffect(() => {
-    // Update chart data based on selected subject
-    if (selectedSubject) {
-      const data = [
-        {
-          status: "Present",
-          count: Math.floor(Math.random() * 100) + 50,
-          fill: "#755485",
-        },
-        {
-          status: "Absent",
-          count: Math.floor(Math.random() * 100) + 20,
-          fill: "#27282c",
-        },
-      ];
-      setChartData(data);
-    }
-  }, [selectedSubject]);
+  //   // Retrieve faculty-specific subjects
+  //   const facultySubjects =
+  //     JSON.parse(localStorage.getItem("facultySubjects")) || {};
+  //   if (facultySubjects[name]) {
+  //     setSelectedSubject(facultySubjects[name][0]); // Set default to first subject
+  //   }
+  // }, [name]);
+  // useEffect(() => {
+  //   // Update chart data based on selected subject
+  //   if (selectedSubject) {
+  //     const data = [
+  //       {
+  //         status: "Present",
+  //         count: Math.floor(Math.random() * 100) + 50,
+  //         fill: "#755485",
+  //       },
+  //       {
+  //         status: "Absent",
+  //         count: Math.floor(Math.random() * 100) + 20,
+  //         fill: "#27282c",
+  //       },
+  //     ];
+  //     setChartData(data);
+  //   }
+  // }, [selectedSubject]);
 
-  const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
+  // const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
   return (
     <>
-      <div className=" bg-[#f7f7f7] p-5 rounded-lg ">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl text-black ">Dashboard</h2>
-          <div>
-            <MonthSelection selectedMonth={selectedMonth} />
+      <div className="assistant-about  flex items-center justify-around mx-auto  ">
+        <div className="bg-gradient-to-t from-[#3f3f3f] via-[#4b6750]  to-[#5382a1]  w-full h-[300px] relative   ">
+          {" "}
+          <div className=" bg-[#f4f4f4] max-w-[1200px] h-auto mx-auto absolute left-0 right-0 top-16    rounded-t-3xl overflow-hidden rounded-b-md ">
+            <div className="flex items-center gap-2 bg-[#0b1f36] px-5 py-3">
+              <div className="w-2 h-2 bg-[#1d68bd] rounded-full"></div>
+              <div className="w-2 h-2 bg-[#5382a1] rounded-full"></div>
+              <div className="w-2 h-2 bg-[#d99442] rounded-full"></div>
+            </div>
+            <div className="p-5">
+              <div className="">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl text-black font-medium">Dashboard</h2>
+                  <div className="flex items-center gap-3">
+                    <Button className="bg-[#4f71ab] hover:bg-[#3b5998] text-white font-medium rounded-full text-[13px] gap-1 h-9 px-4 transition-all duration-300  ">
+                      <TbReport />
+                      Report
+                    </Button>
+
+                    <MonthSelection selectedMonth={selectedMonth} />
+                  </div>
+                </div>
+                {/* <hr
+                  className="mx-auto bg-[#0000003b] mt-2 w-36 rounded-sm"
+                  style={{
+                    height: "0.5px",
+                    color: "white",
+                    borderWidth: 0,
+                  }}
+                ></hr> */}
+              </div>
+              <div className=" ">
+                <div className=" flex items-center justify-between">
+                  <div className="hidden md:block">
+                    {/* Profile Image Container */}
+                    <div className="border-[#cbcbcba2] border-t-2 border-l-2 border-r-2 rounded-t-md p-1 relative">
+                      <div className="relative w-48 h-48 group overflow-hidden rounded-md">
+                        {/* Profile Image */}
+                        <img
+                          src="https://dersyb7nfifdf.cloudfront.net/production/interviewer-profile-pictures/5fa1f3f4-f66c-44d8-a814-fd08ee85beca.jpg"
+                          className="w-full h-full object-cover rounded-md"
+                          alt="Profile"
+                        />
+
+                        {/* Overlay with Hover Effect */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
+                          <Link
+                            to="/faculty/profile"
+                            className="text-white text-lg font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1"
+                          >
+                            Profile
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="18"
+                              height="10"
+                              viewBox="0 0 18 12"
+                              fill="none"
+                              transform="rotate(-45)"
+                            >
+                              <path
+                                d="M1 6H17M17 6L12 1M17 6L12 11"
+                                stroke="#fff"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              ></path>
+                            </svg>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Name Section */}
+                    <div>
+                      <h1 className="text-white text-md text-center bg-[#deb15c] rounded-b-md border-[#cbcbcba2] border-b-2 border-l-2 border-r-2 py-1 flex items-center justify-center gap-2">
+                        Pooja Shah
+                        <span>
+                          <VscVerifiedFilled className="text-[#eceded]" />
+                        </span>
+                      </h1>
+                    </div>
+
+                    {/* Faculty Badge */}
+                    <div className="text-white bg-[#deb15c] w-fit px-2 rounded-full relative bottom-16 left-0 mx-3 flex items-center gap-1">
+                      <div className="w-1 h-1 bg-white rounded-full"></div>
+                      <p className="text-[13px]">Faculty</p>
+                    </div>
+                  </div>
+
+                  {/* Cards Section:  */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 my-6 w-full md:w-4/5">
+                    <CardD
+                      icon={<GraduationCap />}
+                      title="Total Students"
+                      value="120"
+                      description="Number of Total Students"
+                    />
+
+                    <CardD
+                      icon={<Library />}
+                      title="Total Subject"
+                      value="5"
+                      description="Number of Total Subject"
+                    />
+                    <CardD
+                      icon={<TrendingUp />}
+                      title="Present"
+                      value="90%"
+                      description="Number of Present"
+                    />
+                    <CardD
+                      icon={<TrendingDown />}
+                      title="Absent"
+                      value="10%"
+                      description="Number of Absent"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <hr
-          className="mx-auto bg-[#0000003b] my-2 rounded-sm"
-          style={{
-            width: "100%",
-            height: "1px",
-            color: "white",
-            borderWidth: 0,
-          }}
-        ></hr>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-6">
-          <Cards
-            icon={<GraduationCap />}
-            title="Total Students"
-            value={"120"}
-          />
-
-          <Cards icon={<TrendingUp />} title="Present" value={"90%"} />
-          <Cards icon={<TrendingDown />} title="Absent" value={"10%"} />
-        </div>
       </div>
-      <div className="">
-        <Chart />
-      </div>
-      <div className="flex flex-wrap justify-between gap-6">
-        <div className="w-full md:w-[48%] lg:w-[40%]">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="text-white bg-black p-3 rounded-sm my-3">
-              Select Subject
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>Subjects</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup
-                onValueChange={setSelectedSubject}
-                value={selectedSubject}
-              >
-                {subjects
-                  .filter((subject) => subject === selectedSubject)
-                  .map((subject, index) => (
-                    <DropdownMenuRadioItem key={index} value={subject}>
-                      {subject}
-                    </DropdownMenuRadioItem>
-                  ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
-          <Card className="flex flex-col">
-            <CardHeader className="items-center pb-0">
-              <CardTitle>Attendance</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 pb-0">
-              <div className="mx-auto aspect-square max-h-[250px] w-full flex justify-center">
-                <PieChart width={250} height={250}>
-                  <Tooltip />
-                  <Pie
-                    data={chartData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={60}
-                    outerRadius={80}
-                    strokeWidth={5}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                    <Label
-                      content={({ viewBox }) => {
-                        if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                          return (
-                            <text
-                              x={viewBox.cx}
-                              y={viewBox.cy}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                            >
-                              <tspan
-                                x={viewBox.cx}
-                                y={viewBox.cy}
-                                className="text-foreground text-3xl font-bold"
-                              >
-                                {totalCount.toLocaleString()}
-                              </tspan>
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) + 24}
-                                className="text-muted-foreground"
-                              >
-                                Attendance
-                              </tspan>
-                            </text>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                  </Pie>
-                </PieChart>
-              </div>
-            </CardContent>
-            <CardFooter className="flex-col gap-2 text-sm">
-              <div className="flex items-center gap-2 font-medium leading-none">
-                Trending up by 5.2% this month
-              </div>
-              <div className="leading-none text-muted-foreground">
-                Showing total attendance for the last 6 months
-              </div>
-            </CardFooter>
-          </Card>
+      <div className="bg-[#f7f7f7] rounded-lg">
+        <div className="my-[40rem] sm:my-96 md:my-44 lg:mt-56 ">
+          <div className="mx-10">
+            <div className="bg-[#e1e1e1] p-3 rounded-t-2xl flex items-center justify-between">
+              {" "}
+              <h1 className="text-black text-md  px-5 py-2  font-medium">
+                Monitor no-shows with data-driven insights
+                {/* <RxActivityLog />
+                Activity */}
+              </h1>
+              {/* <div className="flex items-center justify-end px-10 gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-3 bg-[#ff9e2a]"></div>
+                  <h1 className="text-black">Present</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-3 bg-[#4a805f]"></div>
+                  <h1 className="text-black">Absent</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-3 bg-[#1d68bd]"></div>
+                  <h1 className="text-black">Total Students</h1>
+                </div>
+              </div> */}
+            </div>
+            <div className="bg-white py-5 px-5">
+              <p className="text-[#a21f1f] font-medium w-[500px]">
+                Track no-show trends with data insights to optimize scheduling
+                and improve efficiency
+              </p>
+            </div>
+
+            <Chart />
+          </div>{" "}
         </div>
       </div>
     </>

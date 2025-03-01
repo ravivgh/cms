@@ -1,5 +1,8 @@
+import FaceScan from "@/components/FaceScan";
 import FacultyDashboard from "@/components/FacultyDashboard";
 import FacultySidebar from "@/components/FacultySidebar";
+import MeetSche from "@/components/MeetSche";
+import StudentDashboard from "@/components/StudentDashboard";
 import { useState } from "react";
 
 const MainFacultyDashboard = () => {
@@ -15,7 +18,7 @@ const MainFacultyDashboard = () => {
         onToggle={handleSidebarToggle}
       />
       <main
-        className={`p-4 transition-all duration-500 ${
+        className={` transition-all duration-500 ${
           isSidebarOpen ? "ml-[12.5rem]" : "ml-[5rem]"
         }`}
         style={{
@@ -23,6 +26,8 @@ const MainFacultyDashboard = () => {
         }}
       >
         <FacultyDashboard />
+
+        {/* <FaceScan /> */}
       </main>
     </div>
   );

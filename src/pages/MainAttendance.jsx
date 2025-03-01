@@ -1,6 +1,7 @@
 import React from "react";
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
+
 import Attendances from "@/components/Attendances";
 const MainAttendance = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

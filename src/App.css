@@ -1,6 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,600;1,100;1,200&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap");
+/* @import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,600;1,100;1,200&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"); */
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Doto:wght@100..900&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,600;1,100;1,200&family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Sora:wght@100..800&display=swap");
 #root {
-  font-family: "Atkinson Hyperlegible", sans-serif;
+  /* font-family: "Atkinson Hyperlegible", sans-serif; */
+  font-family: "Sora", serif;
   font-weight: 400;
   font-style: normal;
   line-height: 1.5;
@@ -17,6 +19,518 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+/* From Uiverse.io by G4b413l */
+.three-body {
+  --uib-size: 35px;
+  --uib-speed: 0.8s;
+  --uib-color: #5d3fd3;
+  position: relative;
+  display: inline-block;
+  height: var(--uib-size);
+  width: var(--uib-size);
+  animation: spin78236 calc(var(--uib-speed) * 2.5) infinite linear;
+}
+
+.three-body__dot {
+  position: absolute;
+  height: 100%;
+  width: 30%;
+}
+
+.three-body__dot:after {
+  content: "";
+  position: absolute;
+  height: 0%;
+  width: 100%;
+  padding-bottom: 100%;
+  background-color: var(--uib-color);
+  border-radius: 50%;
+}
+
+.three-body__dot:nth-child(1) {
+  bottom: 5%;
+  left: 0;
+  transform: rotate(60deg);
+  transform-origin: 50% 85%;
+}
+
+.three-body__dot:nth-child(1)::after {
+  bottom: 0;
+  left: 0;
+  animation: wobble1 var(--uib-speed) infinite ease-in-out;
+  animation-delay: calc(var(--uib-speed) * -0.3);
+}
+
+.three-body__dot:nth-child(2) {
+  bottom: 5%;
+  right: 0;
+  transform: rotate(-60deg);
+  transform-origin: 50% 85%;
+}
+
+.three-body__dot:nth-child(2)::after {
+  bottom: 0;
+  left: 0;
+  animation: wobble1 var(--uib-speed) infinite calc(var(--uib-speed) * -0.15)
+    ease-in-out;
+}
+
+.three-body__dot:nth-child(3) {
+  bottom: -5%;
+  left: 0;
+  transform: translateX(116.666%);
+}
+
+.three-body__dot:nth-child(3)::after {
+  top: 0;
+  left: 0;
+  animation: wobble2 var(--uib-speed) infinite ease-in-out;
+}
+
+@keyframes spin78236 {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wobble1 {
+  0%,
+  100% {
+    transform: translateY(0%) scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(-66%) scale(0.65);
+    opacity: 0.8;
+  }
+}
+
+@keyframes wobble2 {
+  0%,
+  100% {
+    transform: translateY(0%) scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(66%) scale(0.65);
+    opacity: 0.8;
+  }
+}
+
+@keyframes gradient-animation {
+  0% {
+    background-position: 200% 0%;
+  }
+  50% {
+    background-position: -200% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient-animation 8s ease-in-out infinite; /* Adjusted to 8s for slower animation */
+}
+#comment:focus {
+  outline: none;
+  box-shadow: none !important;
+  border: transparent;
+}
+/* Infinite gradient animation */
+@keyframes assistance-cover {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+/* Initial state for the fade effect */
+.fade-effect {
+  opacity: 1;
+  transition: opacity 1s ease-out;
+}
+
+/* State after 3 seconds, trigger fade-out */
+.fade-out {
+  opacity: 0;
+}
+
+.assistance-cover {
+  animation: assistance-cover 3s ease infinite;
+  background-size: 200% 200%;
+  background-image: linear-gradient(
+    to right,
+
+    #0f141c,
+    #2e445e
+  ); /* Blue to Purple gradient */
+}
+.quiz-cover {
+  animation: quiz-cover 3s ease infinite;
+  background-size: 200% 200%;
+  background-image: linear-gradient(
+    to bottom,
+
+    #faf8fd,
+    #ded8fc
+  ); /* Blue to Purple gradient */
+}
+@keyframes quiz-cover {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+.loader {
+  width: 35px;
+  aspect-ratio: 2;
+  --_g: no-repeat radial-gradient(circle closest-side, #a5a5a5 90%, #0000);
+  background: var(--_g) 0% 50%, var(--_g) 50% 50%, var(--_g) 100% 50%;
+  background-size: calc(100% / 3) 50%;
+  animation: l3 1s infinite linear;
+}
+@keyframes l3 {
+  20% {
+    background-position: 0% 0%, 50% 50%, 100% 50%;
+  }
+  40% {
+    background-position: 0% 100%, 50% 0%, 100% 50%;
+  }
+  60% {
+    background-position: 0% 50%, 50% 100%, 100% 0%;
+  }
+  80% {
+    background-position: 0% 50%, 50% 50%, 100% 100%;
+  }
+}
+.rocket {
+  width: 20px;
+  position: fixed;
+  height: 50px;
+  right: 60%;
+  bottom: -10px;
+  position: absolute;
+  transform: translateX(-50%);
+  transition: bottom 20s ease-in-out; /* Increased duration for slower launch */
+}
+
+.rocket-body {
+  width: 20px;
+  height: 50px;
+  background-color: #fff;
+  position: relative;
+  border-radius: 25px 25px 0 0;
+  box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.rocket-fin {
+  width: 10px;
+  height: 15px;
+  background-color: rgb(129, 11, 115);
+  position: absolute;
+  bottom: 0;
+}
+
+.left-fin {
+  left: -10px;
+}
+
+.right-fin {
+  right: -10px;
+}
+
+.rocket-window {
+  width: 5px;
+  height: 5px;
+  background-color: blueviolet;
+  border-radius: 50%;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.rocket-flame {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 30px solid orange;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out; /* Smoother flame appearance */
+}
+
+.rocket.launching .rocket-flame {
+  opacity: 1;
+}
+
+.rocket.launching {
+  animation: launch 10s ease-in-out forwards; /* Increased duration for slower launch */
+}
+
+@keyframes launch {
+  0% {
+    bottom: -25px;
+  }
+  100% {
+    bottom: 80%;
+  }
+}
+/* Parent container */
+.scroll-container {
+  overflow-y: auto;
+  max-height: 100vh; /* Set desired height */
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* For Firefox */
+}
+
+/* Webkit-based browsers (e.g., Chrome, Safari) */
+.scroll-container::-webkit-scrollbar {
+  width: 8px; /* Thin scrollbar */
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* Tailwind CSS (in your tailwind.css or custom styles file) */
+
+@keyframes moveDown {
+  0% {
+    top: -80px;
+  }
+  100% {
+    top: 120px;
+  }
+}
+
+/* Applying the keyframe animation */
+.animate-move-down {
+  animation: moveDown 0.6s ease-in-out forwards;
+}
+@keyframes moveUp {
+  0% {
+    top: 120px;
+  }
+  100% {
+    top: -80px;
+  }
+}
+
+/* Applying the keyframe animation */
+.animate-move-up {
+  animation: moveUp 0.6s ease-in-out forwards;
+}
+.fc-toolbar .fc-button {
+  background-color: #4caf50 !important; /* Green */
+  color: white !important;
+  border: none !important;
+  border-radius: 5px !important;
+  padding: 5px 10px !important;
+}
+/* Target the days of the week in the FullCalendar header */
+.fc-col-header-cell {
+  font-weight: normal !important; /* Set font weight to normal */
+  font-size: 1rem; /* Adjust font size if needed */
+  color: inherit; /* Ensure the text color remains consistent */
+  padding: 10px 15px !important;
+  background-color: #f0f4f9 !important; /* Green */
+}
+/* Customize scrollbar for FullCalendar's content container */
+.fc-scroller {
+  overflow: auto; /* Make sure the scrollbar is visible when content overflows */
+}
+
+.fc-day-today {
+  background-color: #f0f9fe !important; /* Light yellow */
+  border: 2px solid #81cdf2 !important; /* Light yellow */
+}
+/* .author-image-container::before {
+  content: "";
+  position: absolute;
+  top: 500px;
+  left: -400px;
+  width: 70%;
+  height: 40%;
+  background-color: #1d68bd;
+  clip-path: polygon(17% 0, 85% 0, 88% 100%, 52% 98%);
+  transform: rotate(299deg);
+  border-radius: 100px 100px;
+} */
+/* Define the colors for activity levels */
+.color-empty {
+  fill: #ebedf0;
+}
+
+.color-scale-1 {
+  fill: #9be9a8;
+}
+
+.color-scale-2 {
+  fill: #40c463;
+}
+
+.color-scale-3 {
+  fill: #30a14e;
+}
+
+.color-scale-4 {
+  fill: #216e39;
+}
+/* Add this CSS to your stylesheet */
+
+@keyframes infinite-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.infinite-scroll {
+  animation: infinite-scroll 25s linear infinite;
+}
+
+/* Tooltip styling */
+.react-calendar-heatmap-tooltip {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 5px;
+  font-size: 12px;
+  border-radius: 5px;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* FullCalendar scrollbars */
+.fc-scroller::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background: #88888832;
+  border-radius: 10px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+.teeth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.tooth {
+  width: 100px;
+  height: 100px;
+  background-color: #fff;
+  border-radius: 50%;
+  border: 5px solid #ccc;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  animation: rotateTooth 2s infinite ease-in-out;
+}
+
+@keyframes rotateTooth {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.cursor-box {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+
+  border-radius: 2px;
+  opacity: 0.8;
+  animation: blink 1s step-start infinite;
+  margin-top: 50px;
+  margin-left: -50px;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 1;
+  }
+}
+
+.smoke {
+  position: absolute;
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 150px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.653) 20%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  border-radius: 50%;
+  opacity: 0;
+  animation: smoke-rise 5s ease-in-out infinite; /* Slower smoke rise */
+  z-index: -1;
+}
+
+@keyframes smoke-rise {
+  0% {
+    transform: translateX(-50%) translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) translateY(65px) scale(1);
+    opacity: 0;
+  }
+}
+
+.rocket.launching .smoke {
+  opacity: 1;
+}
+
 .navbar-showcase {
   width: 100%;
   background-color: #000000;
@@ -44,6 +558,18 @@
   background-color: #3a3b3f;
   width: 800px;
 }
+.scroll-wrapper {
+  overflow-y: auto;
+  height: 100vh;
+}
+
+.sticky-container {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: white;
+}
+
 .admin-animated img {
   background-color: #3a3b3f;
   width: 800px;

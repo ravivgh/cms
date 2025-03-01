@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import FacultySidebar from "@/components/FacultySidebar";
 import Attendance from "@/components/Attendance";
+
 const MainAttendanceSheet = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -15,7 +16,7 @@ const MainAttendanceSheet = () => {
         onToggle={handleSidebarToggle}
       />
       <main
-        className={`p-4 transition-all duration-500 ${
+        className={`p-4 transition-all duration-500  ${
           isSidebarOpen ? "ml-[12.5rem]" : "ml-[5rem]"
         }`}
         style={{

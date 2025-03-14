@@ -70,6 +70,7 @@ import hoverImage2 from "../assets/allView.png";
 import { MdAdminPanelSettings } from "react-icons/md";
 import { PiStudentFill } from "react-icons/pi";
 import { FaUsers } from "react-icons/fa";
+import axios from "axios";
 const Register = () => {
   const [step, setStep] = useState(1);
   const [collegeName, setCollegeName] = useState("");
@@ -80,16 +81,21 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [section, setSection] = useState("");
-
+  const [stufileName, setStfileName] = useState("");
+  const [stafileName, setStafileName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [file, setFile] = useState("");
   const [fileName, setFileName] = useState("");
-  const [selectedOption, setSelectedOption] = useState("");
+  const [selectedOption, setSelectedOption] = useState("admin");
   const [dialogMessage, setDialogMessage] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [fileData, setFileData] = useState([]);
   const [open, setOpen] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [colleegid, setCollegId] = useState(0);
+  const [status, setStatus] = useState("");
+  const [exceldata, setExceldata] = useState("");
+  const [excel, setExcel] = useState("");
   const navigate = useNavigate();
   useEffect(() => {
     // Duration for each avatar's progress display
@@ -117,34 +123,280 @@ const Register = () => {
     SY: ["SY-A", "SY-B", "SY-C", "SY-D", "SY-E"],
     TY: ["TY-A", "TY-B", "TY-C", "TY-D", "TY-E"],
   };
-  const handleSectionChange = (e) => {
-    setSection(e.target.value);
-  };
-  const selectedYear = "FY";
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setExcel(file)
       setFileName(file.name);
     } else {
       setFileName("");
     }
     const reader = new FileReader();
-
+  
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
+      setExceldata(e.target.result)
       const workbook = XLSX.read(data, { type: "array" });
-
+  
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
       console.log(jsonData);
       setFile(jsonData);
-      setFileData(sheetData);
+      setFileData(sheetData); 
     };
-
+  
     reader.readAsArrayBuffer(file);
+  }
+  const handleSectionChange = (e) => {
+    setSection(e.target.value);
   };
+  const selectedYear = "FY";
+  const staffHandleFileUpload =async (e) => {
+      
+      const reader = new FileReader();
+  
+      reader.onload = (e) => {
+        const data = new Uint8Array(exceldata);
+        const workbook = XLSX.read(data, { type: "array" });
+  
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        let jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        setFileData(sheetData);
+        const firstRow = header[0];
+        const valuesToCheck = [
+          "_id",
+          "Staff_name",
+          "Mob",
+          "Staff_Email",
+          "Assigned_Class",
+          "Section",
+          "Subject",
+        ];
+        let col = 0;
+        valuesToCheck.forEach((value) => {
+          if (firstRow[col] === value) {
+            col++;
+          } else {
+            col--;
+          }
+        });
+        if (col === 7) {
+          jsonData = jsonData.map((staff) => ({
+            ...staff,
+            college_id: colleegid,
+          }));
+  
+          setFile(jsonData);
+          if (insertstaff(jsonData)) {
+
+            setIsDialogOpen(true);
+            setDialogMessage("College Registration Successfull")
+            navigate("/login/admin")
+          } else {
+            setIsDialogOpen(true);
+            setDialogMessage("Error while Importing Staff Data Successfull");
+            setStatus("Error");
+          }
+        } else {
+          alert("Staff Excel Should be in Format");
+        }
+      };
+  
+      reader.readAsArrayBuffer(excel);
+    };
+  
+    const sendmail = async (email, name) => {
+      try {
+        const response = await axios.post(
+          "http://localhost:5472/services/sendmail",
+          {
+            Sendto: email,
+            sendtoname: name,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        if (response.status === 200) {
+          return true;
+        } else {
+          console.error(`Unexpected status code: ${response.status}`);
+          return false;
+        }
+      } catch (error) {
+        // Log the error from the HTTP request
+        console.error("Error sending email:", error);
+        return false;
+      }
+    };
+    const studenthandleFileUpload = (e) => {
+    
+      const reader = new FileReader();
+    
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(exceldata);
+          const workbook = XLSX.read(data, { type: "array" });
+    
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          let jsonData = XLSX.utils.sheet_to_json(worksheet);
+          let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    
+          // Check if header is defined and not empty
+          if (!header || header.length === 0) {
+            alert("The Excel file is empty or improperly formatted.");
+            return;
+          }
+    
+          const firstRow = header[0];
+          const requiredHeaders = [
+            "_id",
+            "Student_Name",
+            "Class",
+            "Section",
+            "DOB",
+            "Email",
+            "Mobile",
+          ];
+    
+          // Check if all required headers are present
+          const isValidFormat = requiredHeaders.every((header) =>
+            firstRow.includes(header)
+          );
+    
+          if (isValidFormat) {
+            // Add college_id to each student object
+            jsonData = jsonData.map((student) => ({
+              ...student,
+              college_id: colleegid, // Ensure colleegid is defined
+            }));
+    
+            // Insert students into the database
+            if (insertstudents(jsonData)) {
+              handleNext(); // Move to the next step
+              setStatus("Success"); // Update status
+            }
+          } else {
+            alert("Excel file should be in the correct format.");
+          }
+        } catch (error) {
+          console.error("Error parsing Excel file:", error);
+          alert("Invalid Excel file. Please upload a valid file.");
+        }
+      };
+    
+      reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        alert("Failed to read the file. Please try again.");
+      };
+    
+      reader.readAsArrayBuffer(excel);
+    };
+    const sendtomongo = async () => {
+      try {
+        let addcollege = await axios.post(
+          "http://localhost:5472/services/insert",
+          { colname: collegeName, addr: address, collename: "College_Master" },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (addcollege.data) {
+          setCollegId(addcollege.data.college_id);
+          handleNext();
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    const register_admin = async () => {
+      try {
+        let user_info = await axios.post(
+          "http://localhost:5472/services/regadmin",
+          {
+            Sname: name,
+            Password: password,
+            Email: email,
+            Mobile: parseInt(phoneNumber),
+            college_id: colleegid,
+            collecname: "Admin_users",
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (user_info.data) {
+          setStatus("Success");
+          handleNext();
+        } else {
+          setStatus("Error");
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    const insertstudents = async (studentdata) => {
+      try {
+        let addstudent = await axios.post(
+          "http://localhost:5472/services/addstudent",
+          { studentdata, collecname: "Student_Master" },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        if (addstudent) {
+          return true;
+          console.log(addstudent);
+        } else {
+          console.log("Error");
+          setStatus("Error");
+          return false;
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    const insertstaff = async (staffdata) => {
+      
+  
+      try {
+        let addstaff = await axios.post(
+          "http://localhost:5472/services/addstaff",
+          { staffdata, collecname: "Staff_Master" },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+  
+        if (addstaff) {
+          return true;
+        } else {
+          console.log("Error");
+          return false;
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+  
   const handleSubmit = () => {
     let message = "";
     switch (selectedOption) {
@@ -169,7 +421,7 @@ const Register = () => {
       setCountdown(counter);
       if (counter === 0) {
         clearInterval(timer);
-        navigate("/login/admin"); // Redirect after countdown
+        navigate("/login/admin"); 
       }
     }, 1000);
     // if (subjectName.trim()) {
@@ -213,7 +465,7 @@ const Register = () => {
   const isPasswordValid = password.length >= 6;
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPhoneNumberValid = /^\d{10}$/.test(phoneNumber);
-  const totalSteps = selectedOption === "student" ? 3 : 5;
+  const totalSteps = selectedOption === "admin" ? 4 : 5;
   const progressDots = Array.from({ length: totalSteps }, (_, i) => i + 1);
   const isFormValid =
     isNameValid && isPasswordValid && isEmailValid && isPhoneNumberValid;
@@ -798,7 +1050,7 @@ const Register = () => {
                         )}
                         <div className="first-btn mt-5">
                           <Button
-                            onClick={handleNext}
+                            onClick={sendtomongo}
                             variant="contained"
                             style={{
                               color: "white",
@@ -822,127 +1074,8 @@ const Register = () => {
                         </div>
                       </div>
                     )}
+                    
                     {step === 2 && (
-                      <div>
-                        <div className="showcase-details w-full text-black">
-                          <div className="intro-showcase-heading pt-5">
-                            <h1 className="text-lg font-medium">
-                              How do you want to use?
-                            </h1>
-                            <p className="text-gray-500 text-sm">
-                              We will personalize your experience accordingly
-                            </p>
-                          </div>
-                          <div className="select-profession pt-5  mb-10 space-y-4 ">
-                            <div
-                              className={`select-student border border-1 border-[#00000016] flex justify-around  items-center py-5 px-2 hover:border-black  ${
-                                selectedOption === "student" ? "active" : ""
-                              }`}
-                              onClick={() => handleSelection("student")}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <div className="student-icon px-5">
-                                <PiStudentFill
-                                  style={{ fontSize: "30px", color: "green" }}
-                                />
-                              </div>
-                              <div className="student-details flex  flex-col px-10">
-                                <h1 className="lg:text-base sm:text-lg text-base">
-                                  Join the student portal for a seamless
-                                  academic experience
-                                </h1>
-                                <p className="text-gray-500">Student</p>
-                              </div>
-                            </div>
-                            <div
-                              className={`select-faulty border border-1 border-[#00000016] flex justify-around items-center py-5 px-2 hover:border-black ${
-                                selectedOption === "faulty" ? "active" : ""
-                              }`}
-                              onClick={() => handleSelection("faulty")}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <div className="faulty-icon px-5">
-                                <MdSupervisorAccount
-                                  style={{ fontSize: "30px", color: "#755485" }}
-                                />
-                              </div>
-                              <div className="faulty-details flex  flex-col px-10">
-                                <h1 className="lg:text-base sm:text-lg text-base">
-                                  Sign up to manage your classes attendance, and
-                                  academic resources
-                                </h1>
-                                <p className="text-gray-500">Faulty</p>
-                              </div>
-                            </div>
-                            <div
-                              className={`select-admin border-1 border-[#00000016] flex justify-around items-center py-5 px-2 border hover:border-black ${
-                                selectedOption === "admin" ? "active" : ""
-                              }`}
-                              onClick={() => handleSelection("admin")}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <div className="admin-icon px-5">
-                                <MdOutlineAdminPanelSettings
-                                  style={{
-                                    fontSize: "30px",
-                                    color: "#1d68bd",
-                                  }}
-                                />
-                              </div>
-                              <div className="admin-details flex  flex-col px-10">
-                                <h1 className="lg:text-base sm:text-lg text-base">
-                                  Sign up to manage college operations, and
-                                  student information
-                                </h1>
-                                <p className="text-gray-500">Admin</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="">
-                            <Button
-                              onClick={handleBack}
-                              variant="contained"
-                              style={{
-                                color: "white",
-                                backgroundColor: "black",
-                                borderRadius: 30,
-                              }}
-                            >
-                              <FaArrowLeftLong
-                                style={{
-                                  padding: "5px",
-                                  color: "white",
-                                  fontSize: "25px",
-                                }}
-                              />
-                            </Button>
-                          </div>
-                          <div className="">
-                            <Button
-                              onClick={handleNext}
-                              disabled={!selectedOption}
-                              variant="contained"
-                              style={{
-                                color: "white",
-                                backgroundColor: "black",
-                                borderRadius: 30,
-                              }}
-                            >
-                              <FaArrowRightLong
-                                style={{
-                                  padding: "5px",
-                                  color: "white",
-                                  fontSize: "25px",
-                                }}
-                              />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {step === 3 && (
                       <div className="text-black">
                         {selectedOption === "admin" && (
                           <>
@@ -1292,7 +1425,7 @@ const Register = () => {
                           </div>
                           <div className="">
                             <Button
-                              onClick={handleNext}
+                              onClick={register_admin}
                               variant="contained"
                               disabled={!isFormValid}
                               style={{
@@ -1331,7 +1464,7 @@ const Register = () => {
                         </div>
                       </div>
                     )}
-                    {step === 4 && (
+                    {step === 3 && (
                       <div>
                         <div className="">
                           <h1 className="text-xl pb-5 font-medium text-black flex items-center gap-2">
@@ -1350,8 +1483,8 @@ const Register = () => {
                                   id="excelFile"
                                   type="file"
                                   accept=".xlsx, .xls"
-                                  className="bg-[#116752] text-gray-400 rounded-full "
                                   onChange={handleFileUpload}
+                                  className="bg-[#116752] text-gray-400 rounded-full"
                                   style={{ display: "none" }}
                                 />
                                 <label
@@ -1482,7 +1615,7 @@ const Register = () => {
                             </Button>
                           </div>
                           <Button
-                            onClick={handleNext}
+                            onClick={studenthandleFileUpload}
                             variant="contained"
                             style={{
                               color: "white",
@@ -1502,7 +1635,7 @@ const Register = () => {
                         </div>
                       </div>
                     )}
-                    {step === 5 && (
+                    {step === 4 && (
                       <div>
                         <div className="">
                           <h1 className="text-xl pb-5 font-medium text-black flex items-center gap-2">
@@ -1520,9 +1653,9 @@ const Register = () => {
                                 <Input
                                   id="excelFile"
                                   type="file"
+                                  onChange={handleFileUpload}
                                   accept=".xlsx, .xls"
                                   className="bg-[#116752] text-gray-400 rounded-full "
-                                  onChange={handleFileUpload}
                                   style={{ display: "none" }}
                                 />
                                 <label
@@ -1654,7 +1787,7 @@ const Register = () => {
                           </div>
                           <div className="">
                             <Button
-                              onClick={handleSubmit}
+                              onClick={staffHandleFileUpload}
                               variant="contained"
                               disabled={
                                 selectedOption === "admin" &&

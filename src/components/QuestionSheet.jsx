@@ -11,6 +11,14 @@ import { MdArrowOutward } from "react-icons/md";
 import { TbMedal } from "react-icons/tb";
 import Confetti from "react-confetti";
 import { useNavigate } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 const QuestionSheet = () => {
   const navigate = useNavigate();
   const TOTAL_TIME = 600; // 10 minutes for entire quiz
@@ -19,50 +27,76 @@ const QuestionSheet = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showConfetti, setShowConfetti] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [subjects, setSubjects] = useState([]); // State to store subjects
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [stotalPointsEarned,setTotalpoints] = useState(0)
 
-  // Updated question sheets with points
-  const questionSheets = [
-    {
-      id: 1,
-      title: "Basic Mathematics",
-      questions: [
-        {
-          id: 1,
-          question: "What is 2 + 2?",
-          options: ["3", "4", "5", "6"],
-          correctAnswer: "4",
-          points: 5, // Easy question
+  // Fetch questions from the backend API
+  const fetchQuestions = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("http://localhost:5472/services/get-mcqs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          id: 2,
-          question: "What is 5 × 5?",
-          options: ["20", "25", "30", "35"],
-          correctAnswer: "25",
-          points: 10, // Medium question
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "General Knowledge",
-      questions: [
-        {
-          id: 3,
-          question: "What is the capital of France?",
-          options: ["London", "Berlin", "Paris", "Madrid"],
-          correctAnswer: "Paris",
-          points: 15, // Medium question
-        },
-        {
-          id: 4,
-          question: "Which planet is known as the Red Planet?",
-          options: ["Venus", "Mars", "Jupiter", "Saturn"],
-          correctAnswer: "Mars",
-          points: 20, // Hard question
-        },
-      ],
-    },
-  ];
+        body: JSON.stringify({
+          Cid: localStorage.getItem("cid"),
+          section_id: localStorage.getItem("sid"),
+          college_id: parseInt(localStorage.getItem("college_id")),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch questions");
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        setError(data.error);
+      } else {
+        
+        const uniqueSubjects = [
+          ...new Set(data.questions.map((q) => q.subject_name)),
+        ];
+        setSubjects(uniqueSubjects);
+
+        
+        if (selectedSubject) {
+          const filteredQuestions = selectedSubject
+        ? data.questions.filter((q) => q.subject_name === selectedSubject)
+        : data.questions;
+          
+          if (filteredQuestions.length > 0) {
+            const formattedQuestions = filteredQuestions.reduce((acc, curr) => {
+              return acc.concat(curr.questions.map((question) => ({
+                ...question,
+                _id: question.id, // Use question.id as the unique identifier
+                options: Object.entries(question.options).map(([key, value]) => ({ key, value })),
+                rewardPoints: typeof question.rewardPoints === 'string' ? parseInt(question.rewardPoints) : question.rewardPoints || 10,
+              })));
+            }, []);
+      
+            setQuestions(formattedQuestions);
+          }
+        }
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [selectedSubject]);
 
   useEffect(() => {
     if (!quizCompleted && timeLeft > 0) {
@@ -105,25 +139,26 @@ const QuestionSheet = () => {
     const allAnswers = [];
     let totalPointsEarned = 0;
 
-    questionSheets.forEach((sheet) => {
-      sheet.questions.forEach((question) => {
-        const isCorrect =
-          selectedAnswers[question.id] === question.correctAnswer;
-        const pointsForQuestion = isCorrect ? question.points : 0;
-        totalPointsEarned += pointsForQuestion;
+    questions.forEach((question) => {
+      const isCorrect =
+        selectedAnswers[question._id] === question.correctAnswer;
+      const pointsForQuestion = isCorrect ? question.rewardPoints || 10 : 0; // Default to 10 points if not provided
+      totalPointsEarned += pointsForQuestion;
+       
+      
 
-        allAnswers.push({
-          questionId: question.id,
-          selectedAnswer: selectedAnswers[question.id] || null,
-          correct: isCorrect,
-          points: pointsForQuestion,
-          possiblePoints: question.points,
-        });
+      allAnswers.push({
+        questionId: question._id,
+        selectedAnswer: selectedAnswers[question._id] || null,
+        correct: isCorrect,
+        points: pointsForQuestion,
+        possiblePoints: question.rewardPoints || 10,
       });
     });
 
     setAnswers(allAnswers);
     setQuizCompleted(true);
+    updateLoyaltyPoints(totalPointsEarned)
     console.log("Total Points Earned:", totalPointsEarned);
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 5000);
@@ -148,6 +183,42 @@ const QuestionSheet = () => {
       totalPossiblePoints,
     };
   };
+
+  async function updateLoyaltyPoints(totalPointsEarned) {
+    try {
+      const response = await fetch("http://localhost:5472/services/updateLoyaltyPoints", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentId: parseInt(localStorage.getItem("student_id")),
+          loyaltyPointsEarned:  totalPointsEarned,
+          college_id :parseInt(localStorage.getItem("college_id"))
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+  
+      if (data.success) {
+        console.log("Loyalty points updated successfully:", data.message);
+        return data;
+      } else {
+        console.error("Loyalty points update failed:", data.message);
+        return data;
+      }
+  
+    } catch (error) {
+      console.error("Error updating loyalty points:", error);
+      return {success: false, message: error.message };
+    }
+  }
+  
 
   if (quizCompleted) {
     const stats = calculateStats();
@@ -229,9 +300,9 @@ const QuestionSheet = () => {
   }
 
   return (
-    <div className=" mx-auto ">
-      <div className="assistant-about  flex items-center justify-around mx-auto  ">
-        <div className="bg-gradient-to-t from-[#262b30] via-[#262b30]  to-[#262b30]  w-full h-64 relative ">
+    <div className="mx-auto">
+      <div className="assistant-about flex items-center justify-around mx-auto">
+        <div className="bg-gradient-to-t from-[#262b30] via-[#262b30] to-[#262b30] w-full h-64 relative">
           <div className="flex items-center justify-between">
             <svg
               width="187"
@@ -263,17 +334,14 @@ const QuestionSheet = () => {
             </svg>
           </div>
 
-          <div className="faculty-intro-card bg-[#262b30] max-w-[1250px] h-80 mx-auto absolute left-0 right-0 top-5  overflow-hidden rounded-b-2xl ">
-            <div className="p-10 ">
+          <div className="faculty-intro-card bg-[#262b30] max-w-[1250px] h-80 mx-auto absolute left-0 right-0 top-5 overflow-hidden rounded-b-2xl">
+            <div className="p-10">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-[#3b4044] p-5 rounded-lg border-gray-600 border relative transition-all duration-300 group">
                   <p className="text-gray-200 text-xs">Total Questions</p>
                   <div className="flex items-center justify-between pt-3">
                     <h1 className="text-white text-2xl pr-4">
-                      {questionSheets.reduce(
-                        (sum, sheet) => sum + sheet.questions.length,
-                        0
-                      )}
+                      {questions.length}
                     </h1>
                     <div className="bg-yellow-500 p-1 rounded-md">
                       <TbMedal className="w-3 h-3 text-white" />
@@ -316,12 +384,7 @@ const QuestionSheet = () => {
                   </p>
                   <div className="flex items-center justify-between pt-3">
                     <h1 className="text-white text-2xl pr-4">
-                      {questionSheets.reduce(
-                        (sum, sheet) =>
-                          sum +
-                          sheet.questions.reduce((s, q) => s + q.points, 0),
-                        0
-                      )}
+                      {questions.reduce((sum, q) => sum + (q.rewardPoints || 10), 0)}
                     </h1>
                     <div className="bg-yellow-500 p-1 rounded-md">
                       <RiCopperCoinFill className="w-3 h-3 text-white" />
@@ -330,9 +393,27 @@ const QuestionSheet = () => {
                 </div>
               </div>
 
-              {/* Header with timer */}
+              {/* Header with timer and subject selection */}
               <div className="bg-[#3b404446] rounded-lg mb-6">
-                <div className="flex items-center justify-end p-4">
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-4">
+                    <Select
+                      value={selectedSubject}
+                      onValueChange={(value) => setSelectedSubject(value)}
+                    >
+                      <SelectTrigger className="w-[180px] bg-[#c8e7fd] text-black">
+                        <SelectValue placeholder="Select Subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                  </div>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 text-white">
                       <FiClock className="w-5 h-5" />
@@ -348,10 +429,6 @@ const QuestionSheet = () => {
                     </Button>
                   </div>
                 </div>
-                {/* <Progress
-                  value={(timeLeft / TOTAL_TIME) * 100}
-                  className="mt-2"
-                /> */}
               </div>
             </div>
           </div>
@@ -359,63 +436,67 @@ const QuestionSheet = () => {
       </div>
 
       {/* Questions display */}
-      <div className="space-y-6 mt-32 mx-10">
-        {questionSheets.map((sheet) => (
-          <Card key={sheet.id} className="bg-[#efefef]  border-none text-black">
-            <CardHeader className="bg-[#d4d4d4] text-black font-medium my-3 rounded-t-lg">
-              <h2 className="text-xl ">{sheet.title}</h2>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {sheet.questions.map((question) => (
-                <div key={question.id} className="space-y-4">
+      {loading ? (
+        <div className="text-center mt-32">Loading questions...</div>
+      ) : error ? (
+        <div className="text-center mt-32 text-red-500">{error}</div>
+      ) : (
+        <div className="space-y-6 mt-32 mx-10">
+          {questions.map((question) => (
+            <Card key={question._id} className="bg-[#efefef] border-none text-black">
+              <CardHeader className="bg-[#d4d4d4] text-black font-medium my-3 rounded-t-lg">
+                <h2 className="text-xl">{question.subject_name}</h2>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="font-medium">{question.question}</h3>
                     <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1  rounded-full px-5  py-[6px] bg-[#008d00]">
-                        <span className="text-white  text-xs">MCQ</span>
+                      <span className="flex items-center gap-1 rounded-full px-5 py-[6px] bg-[#008d00]">
+                        <span className="text-white text-xs">MCQ</span>
                       </span>
-                      <span className="flex items-center gap-1  rounded-full px-2  bg-[#1d68bd] py-[6px]">
+                      <span className="flex items-center gap-1 rounded-full px-2 bg-[#1d68bd] py-[6px]">
                         <RiCopperCoinFill className="text-yellow-400" />
                         <span className="text-white font-medium text-xs">
-                          {question.points} points
+                          {question.rewardPoints || 10} points
                         </span>
                       </span>
                     </div>
                   </div>
-                  <RadioGroup className="space-y-4 ">
+                  <RadioGroup className="space-y-4">
                     {question.options.map((option) => (
                       <div
-                        key={option}
+                        key={option.key}
                         className={`relative flex w-full items-start gap-2 rounded-lg p-4 cursor-pointer transition-all duration-200 border border-[#cccccc] ${
-                          selectedAnswers[question.id] === option
+                          selectedAnswers[question._id] === option.key
                             ? "border-[#b3206f] bg-[#b3206f]/10 text-black"
                             : "border-gray-600 hover:bg-gray-200"
                         }`}
-                        onClick={() => handleOptionSelect(question.id, option)}
+                        onClick={() => handleOptionSelect(question._id, option.key)}
                       >
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-4 h-4 rounded-full border-2 ${
-                              selectedAnswers[question.id] === option
+                              selectedAnswers[question._id] === option.key
                                 ? "border-[#b3206f] bg-[#b3206f]"
                                 : "border-gray-600"
                             }`}
                           >
-                            {selectedAnswers[question.id] === option && (
+                            {selectedAnswers[question._id] === option.key && (
                               <div className="w-full h-full rounded-full bg-white transform scale-50" />
                             )}
                           </div>
-                          <span>{option}</span>
+                          <span>{option.value}</span>
                         </div>
                       </div>
                     ))}
                   </RadioGroup>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

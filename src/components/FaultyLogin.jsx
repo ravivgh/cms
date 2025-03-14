@@ -19,77 +19,76 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { IoIosArrowRoundForward } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import ClipLoader from "react-spinners/ClipLoader";
-import { IoIosCamera } from "react-icons/io";
+import validatestafflogin from "./scripts/validatestafflogin";
+import axios from "axios";
 
-const StudentLogin = () => {
+const StaffLogin = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [step, setStep] = useState(1);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
-  const [otp, setOtp] = useState(""); // State to hold OTP
+  const [otp, setOtp] = useState("");
   const [isOtpValid, setIsOtpValid] = useState(false);
   const [email, setEmail] = useState("");
+  const [isEmailValid, setIsEmailValid] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  // const isButtonDisabled = !email || !password;
-  const [error, setError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email regex
+    return emailRegex.test(email);
+  };
+
+  // Handle email input changes
   const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-    if (!emailPattern.test(e.target.value)) {
-      setError("Please enter a valid email address");
-      setIsButtonDisabled(true);
-    } else {
-      setError("");
-      updateButtonState(e.target.value, password);
-    }
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsEmailValid(validateEmail(newEmail));
+    setButtondisable(!email); // Validate email
   };
 
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-    if (e.target.value.length !== 6) {
-      setPasswordError("Password must be exactly 6 characters long.");
-    } else {
-      setPasswordError("");
-    }
-    updateButtonState(email, e.target.value);
-  };
-  const updateButtonState = (email, password) => {
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const isPasswordValid = password.length === 6;
+  const [loading, setLoading] = useState(false);
+  const [profilePicupload, isProfilePicupload] = useState(false);
+  const [isButtonDisabled, setButtondisable] = useState(true);
+  const [isLoaderVisible, setLoaderVisible] = useState(false);
+  const navigate = useNavigate();
 
-    if (emailPattern.test(email) && isPasswordValid) {
-      setIsButtonDisabled(false);
-    } else {
-      setIsButtonDisabled(true);
-    }
-  };
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+  // const handleEmailChange = (e) => {
+  //   setEmail(e.target.value);
+  //   setButtondisable(!email)
+  // };
   const handleOtpChange = (otp) => {
-    setOtp(otp);
-    console.log(otp);
-    // Check if the OTP length is 4 (or your required length) and update validity
-    setIsOtpValid(otp.length === 4);
+    let matchotp = localStorage.getItem("otp");
+    if (otp == matchotp) {
+      setIsOtpValid(true);
+    } else {
+      setIsOtpValid(false);
+    }
   };
-  const handleDrawerToggle = (e) => {
+  const handleDrawerToggle = async (e) => {
     e.preventDefault();
-    setIsDrawerOpen((prev) => !prev);
+    if (await validatestafflogin(email)) {
+      setIsDrawerOpen((prev) => !prev);
+    } else {
+      alert("Admin with Email Not Found");
+      setIsDrawerOpen(false);
+    }
   };
   const handleVerify = () => {
     if (isOtpValid) {
-      setIsVerifying(true);
-      setTimeout(() => {
-        setIsVerifying(false);
+      let profile_pic = localStorage.getItem("profile_pic");
+      setLoaderVisible(true);
+      if (profile_pic == "true") {
+        setLoading(true);
+        setTimeout(() => {
+          setLoading(false);
+          setLoaderVisible(false);
+          navigate("/facultydashboard");
+        }, 3000);
+      } else {
+        setLoaderVisible(false);
         setStep(2);
-      }, 3000);
+      }
     } else {
       alert("Please enter a valid OTP");
     }
@@ -99,11 +98,56 @@ const StudentLogin = () => {
     setIsCameraOpen(true);
   };
 
-  const handleTakePhoto = (dataUri) => {
+  const dataURItoBlob = (dataUri) => {
+    const byteString = atob(dataUri.split(",")[1]);
+    const mimeString = dataUri.split(",")[0].split(":")[1].split(";")[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  };
+
+  const handleTakePhoto = async (dataUri) => {
     setProfilePicture(dataUri);
     setIsCameraOpen(false);
-    console.log(dataUri);
+    //console.log(dataUri);
   };
+
+  const upload_pic = async () => {
+    const imageBlob = dataURItoBlob(profilePicture);
+    const formData = new FormData();
+    formData.append(
+      "file",
+      imageBlob,
+      localStorage.getItem("staff_id") + ".png"
+    );
+    formData.append("picname", localStorage.getItem("staff_id") + ".png");
+    formData.append("staffid", localStorage.getItem("staff_id"));
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/staffpicupload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        isProfilePicupload(true);
+        return true;
+      } else {
+        isProfilePicupload(false);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+
   const fileInputRef = useRef(null);
   const handleChooseFileClick = () => {
     if (fileInputRef.current) {
@@ -123,14 +167,9 @@ const StudentLogin = () => {
     }
   };
 
-  // const handleBack = () => {
-  //   setStep(1);
-  // };
-
   const handleSubmit = () => {
-    if (profilePicture) {
+    if (profilePicture && upload_pic()) {
       setLoading(true);
-
       setTimeout(() => {
         setLoading(false);
         navigate("/facultydashboard");
@@ -149,7 +188,7 @@ const StudentLogin = () => {
               Manage your classes, track student attendance, and more with our
               comprehensive tools.
             </p>
-            <div className="faulty-band flex  items-center justify-center  bg-[#f1ce8b] py-2 px-3 gap-1 mt-9 w-fit  rounded-full mx-auto lg:mx-0 ">
+            <div className="faulty-band flex  items-center justify-center  bg-[#f1ce8b] p-2 mt-9 w-[250px] rounded-full mx-auto lg:mx-0 ">
               <MdSupervisorAccount
                 style={{ fontSize: "20px", color: "black" }}
               />
@@ -164,7 +203,7 @@ const StudentLogin = () => {
           <div className="w-full max-w-sm p-4">
             <div className="student-box-heading flex items-center justify-center pb-4">
               <h2 className="text-center p-1 m-10 bg-[#f1ce8b] rounded-sm w-32 text-black">
-                FAULTY
+                FACULTY
               </h2>
             </div>
             <hr
@@ -193,43 +232,18 @@ const StudentLogin = () => {
                     value={email}
                     onChange={handleEmailChange}
                   />
-                  {error && (
-                    <p className="text-red-500 text-sm mt-2">{error}</p>
-                  )}
-                  <div className="password-showcase pt-2 relative">
-                    <label htmlFor="password" className="text-black block">
-                      Password
-                    </label>
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="password"
-                      className="w-full p-6 bg-[#F2F3F8] text-black text-lg"
-                      value={password}
-                      onChange={handlePasswordChange}
-                    />
-
-                    <div
-                      className="absolute bottom-4 left-80"
-                      onClick={togglePasswordVisibility}
-                      style={{ cursor: "pointer", color: "black" }}
-                    >
-                      {showPassword ? <FaEye /> : <FaEyeSlash />}
-                    </div>
-                  </div>
-                  {passwordError && (
-                    <p className="text-red-500 text-sm mt-2">{passwordError}</p>
+                  {!isEmailValid && email !== "" && (
+                    <p className="text-red-500 text-sm mt-1">
+                      Please enter a valid email address.
+                    </p>
                   )}
                   <div className="btn pt-10 flex relative items-center">
                     <Button
-                      className={`w-full p-6  ${
-                        isButtonDisabled
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-black"
-                      } text-white rounded-md`}
+                      className="w-full p-6"
                       onClick={handleDrawerToggle}
-                      disabled={isButtonDisabled}
+                      disabled={!isEmailValid}
                     >
-                      Submit
+                      Login
                     </Button>
                     <div className="absolute left-[200px]">
                       <IoIosArrowRoundForward
@@ -269,26 +283,26 @@ const StudentLogin = () => {
                     Enter your verification code
                   </h1>
                   <p className="pt-2">
-                    We sent a verification code to <span>smith@gmail.com</span>
+                    We sent a verification code to <span>{email}</span>
                   </p>
                 </div>
                 <div className="py-7">
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="https://avatars.githubusercontent.com/u/34?v=4"
+                      src="/static/images/avatar/1.jpg"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="https://avatars.githubusercontent.com/u/46?v=4"
+                      src="/static/images/avatar/2.jpg"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="https://avatars.githubusercontent.com/u/4?v=4"
+                      src="/static/images/avatar/4.jpg"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="https://avatars.githubusercontent.com/u/3?v=4"
+                      src="/static/images/avatar/5.jpg"
                     />
                   </AvatarGroup>
                 </div>
@@ -356,15 +370,8 @@ const StudentLogin = () => {
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    {isVerifying ? (
-                      <div className="flex items-center gap-3">
-                        <ClipLoader
-                          size={20}
-                          color={"#fff"}
-                          loading={isVerifying}
-                        />
-                        <span>Verify</span>
-                      </div>
+                    {isLoaderVisible ? (
+                      <ClipLoader size={20} color={"#fff"} />
                     ) : (
                       "Verify"
                     )}
@@ -421,7 +428,7 @@ const StudentLogin = () => {
                           ) : (
                             <>
                               <Button
-                                className="rounded-sm gap-1"
+                                className="rounded-sm"
                                 variant="contained"
                                 onClick={handleOpenCamera}
                                 style={{
@@ -430,7 +437,6 @@ const StudentLogin = () => {
                                   color: "white",
                                 }}
                               >
-                                <IoIosCamera className="text-lg" />
                                 Take Photo
                               </Button>
                               <input
@@ -441,14 +447,6 @@ const StudentLogin = () => {
                                 ref={fileInputRef}
                                 style={{ display: "none" }}
                               />
-
-                              <Button
-                                className="rounded-sm bg-black text-white"
-                                variant="contained"
-                                onClick={handleChooseFileClick}
-                              >
-                                Choose File
-                              </Button>
                             </>
                           )}
                         </div>
@@ -477,4 +475,4 @@ const StudentLogin = () => {
   );
 };
 
-export default StudentLogin;
+export default StaffLogin;

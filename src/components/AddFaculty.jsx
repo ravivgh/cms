@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -12,15 +12,6 @@ import {
   Upload,
 } from "lucide-react";
 import { TextField, Button } from "@mui/material";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,140 +33,228 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import * as XLSX from "xlsx";
+import axios from "axios";
+
 const AdvancedFacultyManagement = () => {
   const [activeView, setActiveView] = useState("grid");
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [sortBy, setSortBy] = useState("name");
+  const [sortBy, setSortBy] = useState("Staff_name");
   const [importStatus, setImportStatus] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
-  const [name, setName] = useState("");
+  const [Staff_name, setStaffName] = useState("");
   const [email, setEmail] = useState("");
-  const [section, setSection] = useState("");
+  const [Section, setSection] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [assignedClass, setAssignedClass] = useState("");
-  const [subject, setSubject] = useState("");
+  const [Assigned_Class, setAssignedClass] = useState("");
+  const [Subject, setSubject] = useState("");
   const [status, setStatus] = useState("");
-  const [editFaculty, setEditFaculty] = useState(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [deleteFacultyId, setDeleteFacultyId] = useState(null);
-  const [facultyData, setFacultyData] = useState([
-    {
-      id: "FT001",
-      name: "Sarah Miller",
-      department: "Computer Science",
-      subject: "Operating Systems",
-      email: "sarah.miller@university.edu",
-      phone: "(555) 123-4567",
-      status: "active",
-      image: "https://avatars.githubusercontent.com/u/1?v=4",
-    },
-    {
-      id: "FT002",
-      name: "niraj",
-      department: "Computer Science",
-      subject: "Operating Systems",
-      email: "sarah.miller@university.edu",
-      phone: "(555) 123-4567",
-      status: "active",
-      image: "https://avatars.githubusercontent.com/u/1?v=4",
-    },
-    {
-      id: "FT003",
-      name: "Prof. James Wilson",
-      department: "Data Science",
-      subject: "Machine Learning",
-      email: "j.wilson@university.edu",
-      phone: "(555) 987-6543",
-      status: "active",
-      image: "https://avatars.githubusercontent.com/u/2?v=4",
-    },
-    {
-      id: "FT004",
-      name: "Dr. Emily Chen",
-      department: "Information Technology",
-      subject: "Database Systems",
-      email: "e.chen@university.edu",
-      phone: "(555) 234-5678",
-      status: "on leave",
-      image: "https://avatars.githubusercontent.com/u/3?v=4",
-    },
-  ]);
-  const departments = [
-    "Computer Science",
-    "Data Science",
-    "Information Technology",
-    "Artificial Intelligence",
-  ];
+  const [facultyData, setFacultyData] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [error, setError] = useState("");
+
   const sections = {
     FY: ["FY-A", "FY-B", "FY-C", "FY-D", "FY-E"],
   };
-
   const statusOptions = ["active", "on leave", "retired"];
-  const handleAddFaculty = (e) => {
+
+  const fetchFacultyData = async () => {
+    try {
+      const response = await axios.post("http://localhost:5472/services/retrievestaffs");
+      setFacultyData(response.data);
+    } catch (error) {
+      console.error("Error fetching faculty data:", error);
+    }
+  };
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await axios.post("http://localhost:5472/services/getsubjects");
+      const subjects = response.data.subject;
+
+      if (subjects && subjects.length > 0) {
+        const uniqueSubjects = [...new Set([...departments, ...subjects])];
+        setDepartments(uniqueSubjects);
+      }
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    }
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        let jsonData = XLSX.utils.sheet_to_json(worksheet);
+        let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        if (!header || header.length === 0) {
+          setError("The Excel file is empty or improperly formatted.");
+          return;
+        }
+
+        const firstRow = header[0];
+        const requiredHeaders = [
+          "_id",
+          "Staff_name",
+          "Mob",
+          "Staff_Email",
+          "Assigned_Class",
+          "Section",
+          "Subject",
+        ];
+
+        const isValidFormat = requiredHeaders.every((header) =>
+          firstRow.includes(header)
+        );
+
+        if (isValidFormat) {
+          jsonData = jsonData.map((student) => ({
+            ...student,
+            college_id: parseInt(localStorage.getItem("college_id")),
+          }));
+
+          insertstudents(jsonData);
+        } else {
+          setError("Excel file should be in the correct format.");
+        }
+      } catch (error) {
+        console.error("Error parsing Excel file:", error);
+        setError("Invalid Excel file. Please upload a valid file.");
+      }
+    };
+
+    reader.onerror = (error) => {
+      console.error("Error reading file:", error);
+      setImportError("Failed to read the file. Please try again.");
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  const insertstudents = async (studentdata) => {
+    try {
+      let addstudent = await axios.post(
+        "http://localhost:5472/services/addstaffimport",
+        { studentdata, collecname: "Staff_Master" },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (addstudent.status === 201) {
+        setImportStatus("Success");
+        setFacultyData((prev) => [...prev, ...studentdata]);
+        setImportStatus("success");
+        setTimeout(() => {
+          setImportStatus(null);
+          setIsImportModalOpen(false);
+          setError(null);
+          setImportDuplicateErrors([]);
+        }, 2000);
+      } else if (addstudent.status === 409) {
+        setImportStatus("error");
+        setImportDuplicateErrors(addstudent.data.errors);
+      } else {
+        setImportStatus("error");
+        setImportError("Failed to add Staff.");
+      }
+    } catch (err) {
+      console.error("Error during staff import:", err);
+      setImportStatus("error");
+      setImportError("An error occurred during staff import.");
+    }
+  };
+
+  const fetchSubjectsByStaffId = async (staffId) => {
+    try {
+      const response = await axios.post("http://localhost:5472/services/getsubjectsbystaffid", {
+        staff_id: staffId,
+      });
+      const staffSubjects = response.data.subjects;
+      if (staffSubjects && staffSubjects.length > 0) {
+        setDepartments((prevDepartments) => [...prevDepartments, ...staffSubjects]);
+      }
+    } catch (error) {
+      console.error("Error fetching subjects by staff ID:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFacultyData();
+    fetchSubjects();
+  }, []);
+
+  const handleAddFaculty = async (e) => {
     e.preventDefault();
+    setError("");
+
+    try {
+      const duplicateCheckResponse = await axios.post("http://localhost:5472/services/getsubjectsbystaffid", {
+        phone: phoneNumber,
+        email: email,
+      });
+
+      if (duplicateCheckResponse.status === 409) {
+        setError("Phone number or email already exists for another staff member.");
+        alert("Phone number or email already exists for another staff member.");
+        return;
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 409) {
+        setError("Phone number or email already exists for another staff member.");
+        alert("Phone number or email already exists for another staff member.");
+        return;
+      }
+      console.error("Error checking for duplicates:", error);
+    }
+
     const newFaculty = {
-      id: `FT${Math.floor(Math.random() * 1000)}`,
-      name,
-      department: "Computer Science", // You might want to add a department selector
-      subject,
+      _id: Math.floor(Math.random() * 1000),
+      Staff_name,
+      Assigned_Class,
+      Section,
+      Subject,
       email,
       phone: phoneNumber,
       status: status || "active",
       image: "/api/placeholder/40/40",
-      section,
-      assignedClass,
     };
-    setFacultyData([...facultyData, newFaculty]);
-    setIsAddModalOpen(false);
-    // Reset form
-    setName("");
-    setEmail("");
-    setSection("");
-    setPhoneNumber("");
-    setAssignedClass("");
-    setSubject("");
-    setStatus("");
-  };
-  const handleEditFaculty = (faculty) => {
-    setEditFaculty(faculty);
-    setName(faculty.name);
-    setEmail(faculty.email);
-    setSection(faculty.section || "");
-    setPhoneNumber(faculty.phone);
-    setAssignedClass(faculty.assignedClass || "");
-    setSubject(faculty.subject);
-    setStatus(faculty.status);
-    setOpenDropdownId(null);
-  };
 
-  const handleSaveEdit = (e) => {
-    e.preventDefault();
-    const updatedFaculty = {
-      ...editFaculty,
-      name,
-      email,
-      section,
-      phone: phoneNumber,
-      assignedClass,
-      subject,
-      status,
-    };
-    setFacultyData(
-      facultyData.map((faculty) =>
-        faculty.id === updatedFaculty.id ? updatedFaculty : faculty
-      )
-    );
-    setEditFaculty(null);
-    setName("");
-    setEmail("");
-    setSection("");
-    setPhoneNumber("");
-    setAssignedClass("");
-    setSubject("");
-    setStatus("");
+    try {
+      const response = await axios.post("http://localhost:5472/services/addstaff", {
+        staffdata: [newFaculty],
+        collecname: "Staff_Master",
+      });
+
+      if (response.status === 200) {
+        setFacultyData([...facultyData, newFaculty]);
+        setIsAddModalOpen(false);
+        setStaffName("");
+        setEmail("");
+        setSection("");
+        setPhoneNumber("");
+        setAssignedClass("");
+        setSubject("");
+        setStatus("");
+      }
+    } catch (error) {
+      console.error("Error adding faculty:", error);
+    }
   };
 
   const handleDeleteClick = (id) => {
@@ -183,16 +262,25 @@ const AdvancedFacultyManagement = () => {
     setOpenDropdownId(null);
   };
 
-  const confirmDelete = () => {
-    setFacultyData(
-      facultyData.filter((faculty) => faculty.id !== deleteFacultyId)
-    );
-    setDeleteFacultyId(null);
+  const confirmDelete = async () => {
+    try {
+      const response = await axios.post("http://localhost:5472/services/deletestaff", {
+        id: deleteFacultyId,
+      });
+
+      if (response.status === 200) {
+        setFacultyData(facultyData.filter((faculty) => faculty._id !== deleteFacultyId));
+        setDeleteFacultyId(null);
+      }
+    } catch (error) {
+      console.error("Error deleting faculty:", error);
+    }
   };
 
   const cancelDelete = () => {
     setDeleteFacultyId(null);
   };
+
   const filteredData = facultyData
     .filter((faculty) => {
       if (activeFilter === "all") return true;
@@ -200,49 +288,15 @@ const AdvancedFacultyManagement = () => {
     })
     .filter(
       (faculty) =>
-        faculty.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        faculty.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        faculty.subject.toLowerCase().includes(searchTerm.toLowerCase())
+        faculty.Staff_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        faculty.Assigned_Class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        faculty.Subject.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       const order = sortOrder === "asc" ? 1 : -1;
       return a[sortBy].localeCompare(b[sortBy]) * order;
     });
-  // Function to handle Excel file import
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      // In a real implementation, you would use a library like xlsx to parse Excel files
-      // For this example, we'll simulate the import process
-      setImportStatus("processing");
 
-      setTimeout(() => {
-        const sampleImportedData = [
-          {
-            id: `FT${Math.floor(Math.random() * 1000)}`,
-            name: "Dr. Import Test",
-            department: "Computer Science",
-            subject: "Data Structures",
-            email: "import.test@university.edu",
-            phone: "(555) 999-8888",
-            status: "active",
-            image: "/api/placeholder/40/40",
-          },
-        ];
-
-        setFacultyData((prev) => [...prev, ...sampleImportedData]);
-        setImportStatus("success");
-
-        // Reset after 2 seconds
-        setTimeout(() => {
-          setImportStatus(null);
-          setIsImportModalOpen(false);
-        }, 2000);
-      }, 1500);
-    }
-  };
-
-  // Import Modal Component
   const ImportModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-md">
@@ -331,11 +385,8 @@ const AdvancedFacultyManagement = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      {/* Header with Stats */}
       <div className="">
         <div className="mb-8 ">
-          {/* <h1 className="text-3xl font-bold text-gray-900">Faculty Management</h1> */}
-
           <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
             {departments.map((dept) => (
               <div
@@ -346,17 +397,15 @@ const AdvancedFacultyManagement = () => {
                   {dept}
                 </h3>
                 <p className="mt-2 text-2xl font-semibold text-gray-900">
-                  {facultyData.filter((f) => f.department === dept).length}
+                  {facultyData.filter((f) => f.Subject === dept).length}
                 </p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Control Panel */}
         <div className=" rounded-t-2xl shadow-sm p-4 mb-6 bg-[#b3206f]">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            {/* Search */}
             <div className="relative flex-grow md:flex-grow-0">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
@@ -364,28 +413,10 @@ const AdvancedFacultyManagement = () => {
                 placeholder="Search faculty..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg   focus:outline-none   bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg  focus:outline-none  bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
               />
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-100">Filter:</span>
-              <select
-                value={activeFilter}
-                onChange={(e) => setActiveFilter(e.target.value)}
-                className="px-3 py-2  rounded-lg focus:outline-none  bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
-              >
-                <option value="all">All Departments</option>
-                {departments.map((dept) => (
-                  <option key={dept} value={dept} className="text-black">
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort */}
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-100">Sort by:</span>
               <select
@@ -393,13 +424,13 @@ const AdvancedFacultyManagement = () => {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-3 py-2  rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
               >
-                <option value="name" className="text-black">
+                <option value="Staff_name" className="text-black">
                   Name
                 </option>
-                <option value="department" className="text-black">
-                  Department
+                <option value="Assigned_Class" className="text-black">
+                  Class
                 </option>
-                <option value="subject" className="text-black">
+                <option value="Subject" className="text-black">
                   Subject
                 </option>
               </select>
@@ -417,8 +448,7 @@ const AdvancedFacultyManagement = () => {
               </button>
             </div>
 
-            {/* View Toggle */}
-            <div className="flex items-center space-x-2 bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all p-2 rounded-xl">
+            <div className="flex items-center space-x-2 bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all p-2rounded-xl">
               <button
                 onClick={() => setActiveView("grid")}
                 className={`px-3 text-sm py-1 rounded-lg ${
@@ -475,11 +505,14 @@ const AdvancedFacultyManagement = () => {
                     className="mt-6 space-y-4 px-4"
                   >
                     <div className="flex flex-col space-y-4 pt-5">
+                      {error && (
+                        <div className="text-red-500 text-sm mb-4">{error}</div>
+                      )}
                       <TextField
                         label="Name"
                         variant="outlined"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={Staff_name}
+                        onChange={(e) => setStaffName(e.target.value)}
                         placeholder="Enter here"
                         sx={{
                           "& .MuiOutlinedInput-root": {
@@ -494,25 +527,10 @@ const AdvancedFacultyManagement = () => {
                           },
                         }}
                       />
-                      <Select onValueChange={setSection} value={section}>
-                        <SelectTrigger className="w-[350px] border border-black">
-                          <SelectValue placeholder="Select a section" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Sections</SelectLabel>
-                            {sections.FY.map((sec) => (
-                              <SelectItem key={sec} value={sec}>
-                                {sec}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
                       <TextField
                         label="Assigned Class"
                         variant="outlined"
-                        value={assignedClass}
+                        value={Assigned_Class}
                         onChange={(e) => setAssignedClass(e.target.value)}
                         placeholder="Enter here"
                         sx={{
@@ -528,25 +546,29 @@ const AdvancedFacultyManagement = () => {
                           },
                         }}
                       />
-                      <Select onValueChange={setStatus} value={status}>
-                        <SelectTrigger className="w-[350px] border border-black">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Status</SelectLabel>
-                            {statusOptions.map((sta) => (
-                              <SelectItem key={sta} value={sta}>
-                                {sta}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      <TextField
+                        label="Section"
+                        variant="outlined"
+                        value={Section}
+                        onChange={(e) => setSection(e.target.value)}
+                        placeholder="Enter here"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            color: "black",
+                            width: "350px",
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "black",
+                            },
+                          },
+                          "& .MuiInputLabel-outlined": {
+                            color: "black",
+                          },
+                        }}
+                      />
                       <TextField
                         label="Subject"
                         variant="outlined"
-                        value={subject}
+                        value={Subject}
                         onChange={(e) => setSubject(e.target.value)}
                         placeholder="Enter here"
                         sx={{
@@ -616,27 +638,26 @@ const AdvancedFacultyManagement = () => {
         </div>
       </div>
 
-      {/* Faculty Display */}
       {activeView === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredData.map((faculty) => (
             <div
-              key={faculty.id}
+              key={faculty._id}
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center">
                   <img
                     src={faculty.image}
-                    alt={faculty.name}
+                    alt={faculty.Staff_name}
                     className="w-12 h-12 rounded-full"
                   />
                   <div className="ml-4">
                     <h3 className="font-semibold text-gray-900">
-                      {faculty.name}
+                      {faculty.Staff_name}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {faculty.department}
+                      {faculty.Assigned_Class} - {faculty.Section}
                     </p>
                   </div>
                 </div>
@@ -651,9 +672,9 @@ const AdvancedFacultyManagement = () => {
                     {faculty.status}
                   </span>
                   <DropdownMenu
-                    open={openDropdownId === faculty.id}
+                    open={openDropdownId === faculty._id}
                     onOpenChange={(open) =>
-                      setOpenDropdownId(open ? faculty.id : null)
+                      setOpenDropdownId(open ? faculty._id : null)
                     }
                   >
                     <DropdownMenuTrigger asChild>
@@ -663,12 +684,7 @@ const AdvancedFacultyManagement = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem
-                        onClick={() => handleEditFaculty(faculty)}
-                      >
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteClick(faculty.id)}
+                        onClick={() => handleDeleteClick(faculty._id)}
                       >
                         Delete
                       </DropdownMenuItem>
@@ -680,15 +696,15 @@ const AdvancedFacultyManagement = () => {
               <div className="mt-4 space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium mr-2">Subject:</span>
-                  {faculty.subject}
+                  {faculty.Subject}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium mr-2">Email:</span>
-                  {faculty.email}
+                  {faculty.Staff_Email}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium mr-2">Phone:</span>
-                  {faculty.phone}
+                  {faculty.Mob}
                 </div>
               </div>
             </div>
@@ -703,7 +719,10 @@ const AdvancedFacultyManagement = () => {
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Department
+                  Class
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Section
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Subject
@@ -718,28 +737,29 @@ const AdvancedFacultyManagement = () => {
             </thead>
             <tbody>
               {filteredData.map((faculty) => (
-                <tr key={faculty.id} className="border-b hover:bg-gray-50">
+                <tr key={faculty._id} className="border-b hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <img
                         src={faculty.image}
-                        alt={faculty.name}
+                        alt={faculty.Staff_name}
                         className="w-8 h-8 rounded-full mr-3"
                       />
                       <div>
                         <div className="font-medium text-gray-900">
-                          {faculty.name}
+                          {faculty.Staff_name}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {faculty.email}
+                          {faculty.Staff_Email}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-900">
-                    {faculty.department}
+                    {faculty.Assigned_Class}
                   </td>
-                  <td className="px-6 py-4 text-gray-900">{faculty.subject}</td>
+                  <td className="px-6 py-4 text-gray-900">{faculty.Section}</td>
+                  <td className="px-6 py-4 text-gray-900">{faculty.Subject}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-2 py-1 text-xs rounded-full ${
@@ -753,9 +773,9 @@ const AdvancedFacultyManagement = () => {
                   </td>
                   <td className="px-6 py-4">
                     <DropdownMenu
-                      open={openDropdownId === faculty.id}
+                      open={openDropdownId === faculty._id}
                       onOpenChange={(open) =>
-                        setOpenDropdownId(open ? faculty.id : null)
+                        setOpenDropdownId(open ? faculty._id : null)
                       }
                     >
                       <DropdownMenuTrigger asChild>
@@ -765,12 +785,7 @@ const AdvancedFacultyManagement = () => {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem
-                          onClick={() => handleEditFaculty(faculty)}
-                        >
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteClick(faculty.id)}
+                          onClick={() => handleDeleteClick(faculty._id)}
                         >
                           Delete
                         </DropdownMenuItem>
@@ -783,92 +798,7 @@ const AdvancedFacultyManagement = () => {
           </table>
         </div>
       )}
-      {/* Edit Dialog */}
-      {editFaculty && (
-        <Dialog open={!!editFaculty} onOpenChange={() => setEditFaculty(null)}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Edit Faculty</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <TextField
-                label="Name"
-                variant="outlined"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="Email"
-                variant="outlined"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                fullWidth
-              />
-              <Select onValueChange={setSection} value={section}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a section" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Sections</SelectLabel>
-                    {sections.FY.map((sec) => (
-                      <SelectItem key={sec} value={sec}>
-                        {sec}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <TextField
-                label="Phone number"
-                variant="outlined"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="Assigned Class"
-                variant="outlined"
-                value={assignedClass}
-                onChange={(e) => setAssignedClass(e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="Subject"
-                variant="outlined"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                fullWidth
-              />
-              <Select onValueChange={setStatus} value={status}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Status</SelectLabel>
-                    {statusOptions.map((sta) => (
-                      <SelectItem key={sta} value={sta}>
-                        {sta}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <div className="flex justify-end space-x-2">
-                <Button onClick={() => setEditFaculty(null)} variant="outlined">
-                  Cancel
-                </Button>
-                <Button type="submit" variant="contained">
-                  Save
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
-      {/* Delete Confirmation Dialog */}
+
       {deleteFacultyId && (
         <Dialog open={!!deleteFacultyId} onOpenChange={cancelDelete}>
           <DialogContent>
@@ -876,8 +806,8 @@ const AdvancedFacultyManagement = () => {
               <DialogTitle>Confirm Delete</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete{" "}
-                {facultyData.find((f) => f.id === deleteFacultyId)?.name}? This
-                action cannot be undone.
+                {facultyData.find((f) => f._id === deleteFacultyId)?.Staff_name}?
+                This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

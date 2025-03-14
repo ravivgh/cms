@@ -38,7 +38,6 @@ import InitiateMeet from "./components/InitiateMeet";
 import MainCourseFaculty from "./pages/MainCourseFaculty";
 import MainFacultyAddCourse from "./pages/MainFacultyAddCourse";
 import MainFacultyCourseDetails from "./pages/MainFacultyCourseDetails";
-import MainFacultyChat from "./pages/MainFacultyChat";
 import MainFacultyMaster from "./pages/MainFacultyMaster";
 import MainFacultyAppointment from "./pages/MainFacultyAppointment";
 import MainFacultyReminder from "./pages/MainFacultyReminder";
@@ -57,6 +56,8 @@ import MainStudentLeave from "./pages/MainStudentLeave";
 import MainStudentMaster from "./pages/MainStudentMaster";
 import MainStudentAppointment from "./pages/MainStudentAppointment";
 import MainStudentProfile from "./pages/MainStudentProfile";
+import JoinMeetStudent from "./components/StudentVideo";
+import QnsView from "./components/FacultyQnS";
 // import Register from "./components/Register";
 // import HomePage from "./components/HomePage";
 // import LoginPage from "./components/LoginPage";
@@ -93,7 +94,7 @@ function App() {
           <Route path="/course" element={<MainCoursePage />} />
           <Route path="/course/addcourse" element={<MainCourseAdd />} />
           <Route path="/course/:courseId" element={<MainCourseDetalis />} />
-          <Route path="/chat" element={<MainChatMessage />} />
+{/*<Route path="/chat" element={<MainChatMessage />} /> */}
           <Route path="/collegemaster" element={<MainMaster />} />
           <Route
             path="/collegemaster/settings/appointment"
@@ -122,7 +123,7 @@ function App() {
           />
           <Route path="/chat-student" element={<MainStudentChat />} />
           <Route path="/video-call" element={<VideoCall />} />
-          <Route path="/initiate-meet-student" element={<InitiateMeet />} />
+          <Route path="/initiate-meet-student" element={< JoinMeetStudent/>} />
           <Route
             path="/collegemaster-student"
             element={<MainStudentMaster />}
@@ -148,7 +149,7 @@ function App() {
             path="/courses/:coursesId"
             element={<MainFacultyCourseDetails />}
           />
-          <Route path="/chats" element={<MainFacultyChat />} />
+          <Route path="/chats" element={<QnsView />} />
           <Route path="/video-call" element={<VideoCall />} />
           <Route path="/initiate-meet-faculty" element={<InitiateMeet />} />
 

@@ -31,13 +31,13 @@ import { BellIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const Calendar = () => {
-  const calendarRef = useRef(null); // Reference to FullCalendar
+  const calendarRef = useRef(null); 
   const [currentView, setCurrentView] = useState("dayGridMonth"); // Default view
   const [currentDate, setCurrentDate] = useState(new Date());
   const notifications = [
     { id: 1, name: "John Doe", email: "john.doe@example.com" },
     { id: 2, name: "Jane Smith", email: "jane.smith@example.com" },
-    { id: 3, name: "Alice Johnson", email: "alice.johnson@example.com" },
+    { id: 3, name: "Alice Johnso  n", email: "alice.johnson@example.com" },
   ];
   const [open, setOpen] = useState(false);
 
@@ -47,7 +47,7 @@ const Calendar = () => {
 
   const handleViewChange = (event) => {
     const newView = event.target.value;
-    setCurrentView(newView); // Update the dropdown value
+    setCurrentView(newView);
     if (calendarRef.current) {
       const calendarApi = calendarRef.current.getApi();
       calendarApi.changeView(newView); // Change FullCalendar view

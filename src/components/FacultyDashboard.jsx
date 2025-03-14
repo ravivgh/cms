@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-unused-vars
 import React, { useEffect, useState } from "react";
 import MonthSelection from "./MonthSelection";
 import CardD from "./Card";
@@ -8,49 +7,61 @@ import Chart from "./Chart";
 import { Button } from "./ui/button";
 import { TbReport } from "react-icons/tb";
 import { Link } from "react-router-dom";
-const FacultyDashboard = ({ selectedMonth }) => {
-  // const [subjects, setSubjects] = useState([]);
-  // const [selectedSubject, setSelectedSubject] = useState(null);
-  // const [chartData, setChartData] = useState([]);
-  // const [name, setName] = useState("om");
-  // useEffect(() => {
-  //   // Retrieve subjects from local storage
-  //   const storedSubjects = JSON.parse(localStorage.getItem("subjects")) || [];
-  //   setSubjects(storedSubjects);
+import { addMonths } from 'date-fns';
 
-  //   // Retrieve faculty-specific subjects
-  //   const facultySubjects =
-  //     JSON.parse(localStorage.getItem("facultySubjects")) || {};
-  //   if (facultySubjects[name]) {
-  //     setSelectedSubject(facultySubjects[name][0]); // Set default to first subject
-  //   }
-  // }, [name]);
-  // useEffect(() => {
-  //   // Update chart data based on selected subject
-  //   if (selectedSubject) {
-  //     const data = [
-  //       {
-  //         status: "Present",
-  //         count: Math.floor(Math.random() * 100) + 50,
-  //         fill: "#755485",
-  //       },
-  //       {
-  //         status: "Absent",
-  //         count: Math.floor(Math.random() * 100) + 20,
-  //         fill: "#27282c",
-  //       },
-  //     ];
-  //     setChartData(data);
-  //   }
-  // }, [selectedSubject]);
+const FacultyDashboard = () => {
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // const totalCount = chartData.reduce((acc, curr) => acc + curr.count, 0);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          "http://localhost:5472/services/getstafdashcount",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              month: selectedMonth,
+              staff_id: localStorage.getItem("staff_id"),
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch dashboard data");
+        }
+
+        const data = await response.json();
+        setDashboardData(data);
+        console.log("API Response:", data);
+      } catch (err) {
+        setError(err.message);
+        console.error("Error fetching dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+    console.log("Month changed:", selectedMonth);
+  }, [selectedMonth]);
+
+  const handleMonthChange = (month) => {
+    setSelectedMonth(month);
+  };
+
   return (
     <>
       <div className="assistant-about  flex items-center justify-around mx-auto  ">
-        <div className="bg-gradient-to-t from-[#3f3f3f] via-[#4b6750]  to-[#5382a1]  w-full h-[300px] relative   ">
-          {" "}
-          <div className=" bg-[#f4f4f4] max-w-[1200px] h-auto mx-auto absolute left-0 right-0 top-16    rounded-t-3xl overflow-hidden rounded-b-md ">
+        <div className="bg-gradient-to-t from-[#3f3f3f] via-[#4b6750]  to-[#5382a1]   w-full h-[300px] relative   ">
+          <div className=" bg-[#f4f4f4] max-w-[1200px] h-auto mx-auto absolute left-0 right-0 top-16     rounded-t-3xl overflow-hidden rounded-b-md ">
             <div className="flex items-center gap-2 bg-[#0b1f36] px-5 py-3">
               <div className="w-2 h-2 bg-[#1d68bd] rounded-full"></div>
               <div className="w-2 h-2 bg-[#5382a1] rounded-full"></div>
@@ -66,32 +77,26 @@ const FacultyDashboard = ({ selectedMonth }) => {
                       Report
                     </Button>
 
-                    <MonthSelection selectedMonth={selectedMonth} />
+                    <MonthSelection
+                      selectedMonth={selectedMonth}
+                      onSelectDate={handleMonthChange}
+                    />
                   </div>
                 </div>
-                {/* <hr
-                  className="mx-auto bg-[#0000003b] mt-2 w-36 rounded-sm"
-                  style={{
-                    height: "0.5px",
-                    color: "white",
-                    borderWidth: 0,
-                  }}
-                ></hr> */}
               </div>
               <div className=" ">
                 <div className=" flex items-center justify-between">
                   <div className="hidden md:block">
-                    {/* Profile Image Container */}
                     <div className="border-[#cbcbcba2] border-t-2 border-l-2 border-r-2 rounded-t-md p-1 relative">
                       <div className="relative w-48 h-48 group overflow-hidden rounded-md">
-                        {/* Profile Image */}
                         <img
-                          src="https://dersyb7nfifdf.cloudfront.net/production/interviewer-profile-pictures/5fa1f3f4-f66c-44d8-a814-fd08ee85beca.jpg"
+                          src={`http://localhost:5472/profilepics/${localStorage.getItem(
+                            "staff_id"
+                          )}.png`}
                           className="w-full h-full object-cover rounded-md"
                           alt="Profile"
                         />
 
-                        {/* Overlay with Hover Effect */}
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
                           <Link
                             to="/faculty/profile"
@@ -119,48 +124,39 @@ const FacultyDashboard = ({ selectedMonth }) => {
                       </div>
                     </div>
 
-                    {/* Name Section */}
                     <div>
                       <h1 className="text-white text-md text-center bg-[#deb15c] rounded-b-md border-[#cbcbcba2] border-b-2 border-l-2 border-r-2 py-1 flex items-center justify-center gap-2">
-                        Pooja Shah
+                        {localStorage.getItem("staff_name")}
                         <span>
                           <VscVerifiedFilled className="text-[#eceded]" />
                         </span>
                       </h1>
                     </div>
 
-                    {/* Faculty Badge */}
                     <div className="text-white bg-[#deb15c] w-fit px-2 rounded-full relative bottom-16 left-0 mx-3 flex items-center gap-1">
                       <div className="w-1 h-1 bg-white rounded-full"></div>
                       <p className="text-[13px]">Faculty</p>
                     </div>
                   </div>
 
-                  {/* Cards Section:  */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 my-6 w-full md:w-4/5">
                     <CardD
                       icon={<GraduationCap />}
                       title="Total Students"
-                      value="120"
+                      value={dashboardData?.students || 0}
                       description="Number of Total Students"
                     />
 
                     <CardD
-                      icon={<Library />}
-                      title="Total Subject"
-                      value="5"
-                      description="Number of Total Subject"
-                    />
-                    <CardD
                       icon={<TrendingUp />}
                       title="Present"
-                      value="90%"
+                      value={`${dashboardData?.present || 0}%`}
                       description="Number of Present"
                     />
                     <CardD
                       icon={<TrendingDown />}
                       title="Absent"
-                      value="10%"
+                      value={`${dashboardData?.absent || 0}%`}
                       description="Number of Absent"
                     />
                   </div>
@@ -174,37 +170,8 @@ const FacultyDashboard = ({ selectedMonth }) => {
       <div className="bg-[#f7f7f7] rounded-lg">
         <div className="my-[40rem] sm:my-96 md:my-44 lg:mt-56 ">
           <div className="mx-10">
-            <div className="bg-[#e1e1e1] p-3 rounded-t-2xl flex items-center justify-between">
-              {" "}
-              <h1 className="text-black text-md  px-5 py-2  font-medium">
-                Monitor no-shows with data-driven insights
-                {/* <RxActivityLog />
-                Activity */}
-              </h1>
-              {/* <div className="flex items-center justify-end px-10 gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-3 bg-[#ff9e2a]"></div>
-                  <h1 className="text-black">Present</h1>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-3 bg-[#4a805f]"></div>
-                  <h1 className="text-black">Absent</h1>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-3 bg-[#1d68bd]"></div>
-                  <h1 className="text-black">Total Students</h1>
-                </div>
-              </div> */}
-            </div>
-            <div className="bg-white py-5 px-5">
-              <p className="text-[#a21f1f] font-medium w-[500px]">
-                Track no-show trends with data insights to optimize scheduling
-                and improve efficiency
-              </p>
-            </div>
-
             <Chart />
-          </div>{" "}
+          </div>
         </div>
       </div>
     </>

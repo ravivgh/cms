@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Filter, SortAsc, SortDesc } from "lucide-react";
 
 const FacultyNotEdit = () => {
@@ -7,60 +7,71 @@ const FacultyNotEdit = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [facultyData, setFacultyData] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [facultyData, setFacultyData] = useState([
-    {
-      id: "FT001",
-      name: "Sarah Miller",
-      department: "Computer Science",
-      subject: "Operating Systems",
-      email: "sarah.miller@university.edu",
-      phone: "(555) 123-4567",
-      status: "active",
-      image: "https://avatars.githubusercontent.com/u/1?v=4",
-    },
-    {
-      id: "FT002",
-      name: "niraj",
-      department: "Computer Science",
-      subject: "Operating Systems",
-      email: "sarah.miller@university.edu",
-      phone: "(555) 123-4567",
-      status: "active",
-      image: "https://avatars.githubusercontent.com/u/1?v=4",
-    },
-    {
-      id: "FT003",
-      name: "Prof. James Wilson",
-      department: "Data Science",
-      subject: "Machine Learning",
-      email: "j.wilson@university.edu",
-      phone: "(555) 987-6543",
-      status: "active",
-      image: "https://avatars.githubusercontent.com/u/2?v=4",
-    },
-    {
-      id: "FT004",
-      name: "Dr. Emily Chen",
-      department: "Information Technology",
-      subject: "Database Systems",
-      email: "e.chen@university.edu",
-      phone: "(555) 234-5678",
-      status: "on leave",
-      image: "https://avatars.githubusercontent.com/u/3?v=4",
-    },
-  ]);
-  const departments = [
-    "Computer Science",
-    "Data Science",
-    "Information Technology",
-    "Artificial Intelligence",
-  ];
+  // Hardcoded student_id (replace with dynamic value if needed)
+  const student_id = "STUD123";
 
+  // Fetch faculty data based on student_id
+  useEffect(() => {
+    const fetchFacultyData = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5472/services/retrievestaffbystudid",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ searchwith: parseInt(localStorage.getItem("student_id")) }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch faculty data");
+        }
+
+        const data = await response.json();
+
+        // Map API response to the expected structure
+        const mappedData = data.map((staff) => ({
+          id: staff._id,
+          name: staff.Staff_name || "Unknown",
+          department: staff.Assigned_Class || "Unknown",
+          subject: staff.Subject || "Unknown",
+          email: staff.Staff_Email || staff.email || "Unknown",
+          phone: staff.Mob || staff.phone || "Unknown",
+          status: "active", // Default status
+          image: staff.isprofilepic
+            ? `http://localhost:5472/profilepics/${staff.profilepic}`
+            : "https://via.placeholder.com/150", // Default image
+        }));
+
+        setFacultyData(mappedData); // Update facultyData state with the mapped data
+
+        // Extract unique subjects from the API response
+        const uniqueSubjects = [...new Set(data.map((staff) => staff.Subject))];
+        setDepartments((prevDepartments) => [
+          ...new Set([...prevDepartments, ...uniqueSubjects]),
+        ]);
+      } catch (error) {
+        setError(error.message); // Set error state if the API call fails
+      } finally {
+        setLoading(false); // Set loading to false after the API call completes
+      }
+    };
+
+    fetchFacultyData();
+  }, [student_id]); // Re-fetch data if student_id changes
+
+  // Filter and sort faculty data
   const filteredData = facultyData
     .filter((faculty) => {
       if (activeFilter === "all") return true;
-      return faculty.department === activeFilter;
+      return faculty.department === activeFilter || faculty.subject === activeFilter;
     })
     .filter(
       (faculty) =>
@@ -73,13 +84,29 @@ const FacultyNotEdit = () => {
       return a[sortBy].localeCompare(b[sortBy]) * order;
     });
 
+  // Display loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+        <div className="text-gray-700">Loading faculty data...</div>
+      </div>
+    );
+  }
+
+  // Display error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
+        <div className="text-red-600">Error: {error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       {/* Header with Stats */}
       <div className="">
-        <div className="mb-8 ">
-          {/* <h1 className="text-3xl font-bold text-gray-900">Faculty Management</h1> */}
-
+        <div className="mb-8">
           <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
             {departments.map((dept) => (
               <div
@@ -90,7 +117,9 @@ const FacultyNotEdit = () => {
                   {dept}
                 </h3>
                 <p className="mt-2 text-2xl font-semibold text-gray-900">
-                  {facultyData.filter((f) => f.department === dept).length}
+                  {facultyData.filter(
+                    (f) => f.department === dept || f.subject === dept
+                  ).length}
                 </p>
               </div>
             ))}
@@ -98,7 +127,7 @@ const FacultyNotEdit = () => {
         </div>
 
         {/* Control Panel */}
-        <div className=" rounded-t-2xl shadow-sm p-4 mb-6 bg-[#b3206f]">
+        <div className="rounded-t-2xl shadow-sm p-4 mb-6 bg-[#b3206f]">
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Search */}
             <div className="relative flex-grow md:flex-grow-0">
@@ -108,7 +137,7 @@ const FacultyNotEdit = () => {
                 placeholder="Search faculty..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg   focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
               />
             </div>
 
@@ -118,7 +147,7 @@ const FacultyNotEdit = () => {
               <select
                 value={activeFilter}
                 onChange={(e) => setActiveFilter(e.target.value)}
-                className="px-3 py-2  rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                className="px-3 py-2 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
               >
                 <option value="all">All Departments</option>
                 {departments.map((dept) => (
@@ -135,7 +164,7 @@ const FacultyNotEdit = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2  rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                className="px-3 py-2 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
               >
                 <option value="name" className="text-black">
                   Name

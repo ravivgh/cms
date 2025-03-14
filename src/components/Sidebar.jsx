@@ -10,7 +10,7 @@ import { CgLogOut } from "react-icons/cg";
 import { ClipLoader } from "react-spinners";
 import { BsChatSquareTextFill } from "react-icons/bs";
 import { MdMenuBook } from "react-icons/md";
-import { PiVideoConferenceFill } from "react-icons/pi";
+import { PiVideoCameraFill } from "react-icons/pi";
 import { MdOutlineCollectionsBookmark } from "react-icons/md";
 import { HiChatAlt2 } from "react-icons/hi";
 import { FaBriefcase } from "react-icons/fa";
@@ -29,6 +29,10 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
     setSelectedOption(location.pathname);
   }, [isSidebarOpen, location]);
   const handleLogout = () => {
+        localStorage.removeItem("college_id")
+        localStorage.removeItem("otp")
+        localStorage.removeItem("profile_pic")
+        localStorage.removeItem("admin_id")
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
@@ -197,31 +201,7 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
               </span>
             </Link>
           </li>
-          <li>
-            <Link
-              to="/chat"
-              className={`flex items-center text-xl  no-underline leading-none p-[10px_14px] transition-colors duration-400 ease-in-out hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black rounded-md ${
-                selectedOption === "/chat"
-                  ? "bg-white text-black"
-                  : "text-white"
-              }`}
-              onClick={() => setSelectedOption("/chat")}
-            >
-              <i>
-                <HiChatAlt2 className="text-lg" />
-              </i>
-
-              <span
-                className={`${
-                  isSidebarOpen
-                    ? "opacity-100 visible pl-2"
-                    : "opacity-0 invisible"
-                } text-sm`}
-              >
-                Chat
-              </span>
-            </Link>
-          </li>
+          
           <li>
             <Link
               to="/initiate-meet"
@@ -233,7 +213,7 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
               onClick={() => setSelectedOption("/initiate-meet")}
             >
               <i>
-                <PiVideoConferenceFill className="text-lg" />
+                <PiVideoCameraFill className="text-lg" />
               </i>
 
               <span

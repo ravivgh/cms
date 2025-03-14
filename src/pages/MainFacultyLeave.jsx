@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FacultySidebar from "@/components/FacultySidebar";
 import LeaveFaculty from "../components/Leave";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,57 +13,54 @@ import { FaArrowLeftLong } from "react-icons/fa6";
 const MainFacultyLeave = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCreatingLeave, setIsCreatingLeave] = useState(false);
-  const [studentLeaveRequests, setStudentLeaveRequests] = useState([
-    {
-      id: 1,
-      name: "Meet Patel",
-      role: "Student",
-      department: "Information Technology",
-      reason: "Family Emergency",
-      startDate: "2024-03-22",
-      endDate: "2024-03-24",
-      status: "pending",
-      avatar: "https://avatars.githubusercontent.com/u/2?v=4",
-    },
-    {
-      id: 2,
-      name: "John Doe",
-      role: "Student",
-      department: "Computer Science",
-      reason: "Medical Leave",
-      startDate: "2024-03-25",
-      endDate: "2024-03-28",
-      status: "approved",
-      avatar: "https://avatars.githubusercontent.com/u/3?v=4",
-    },
-    {
-      id: 2,
-      name: "John Doe",
-      role: "Student",
-      department: "Computer Science",
-      reason: "Medical Leave",
-      startDate: "2024-03-25",
-      endDate: "2024-03-28",
-      status: "approved",
-      avatar: "https://avatars.githubusercontent.com/u/4?v=4",
-    },
-    {
-      id: 2,
-      name: "John Doe",
-      role: "Student",
-      department: "Computer Science",
-      reason: "Medical Leave",
-      startDate: "2024-03-25",
-      endDate: "2024-03-28",
-      status: "approved",
-      avatar: "https://avatars.githubusercontent.com/u/5?v=4",
-    },
-  ]);
-
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
   });
+
+  useEffect(() => {
+    const fetchLeaveRequests = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          "http://localhost:5472/services/getfacultyleaverequest",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              college_id: localStorage.getItem("college_id"),
+              staff_id: parseInt(localStorage.getItem("staff_id")),
+              status: filters.status === "all" ? null : filters.status,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch leave requests");
+        }
+
+        const data = await response.json();
+        if (data && data.data) {
+          setLeaveRequests(data.data);
+        } else {
+          setLeaveRequests([]);
+        }
+      } catch (err) {
+        setError(err.message);
+        console.error("Error fetching leave requests:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaveRequests();
+  }, [filters.status]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
@@ -72,12 +69,32 @@ const MainFacultyLeave = () => {
     }));
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    setStudentLeaveRequests((prev) =>
-      prev.map((request) =>
-        request.id === id ? { ...request, status: newStatus } : request
-      )
-    );
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5472/services/updateleaverequest/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: id, status: newStatus }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update leave status");
+      }
+
+      setLeaveRequests((prev) =>
+        prev.map((request) =>
+          request.lid === id ? { ...request, status: newStatus } : request
+        )
+      );
+    } catch (err) {
+      setError(err.message);
+      console.error("Error updating leave status:", err);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -102,10 +119,19 @@ const MainFacultyLeave = () => {
     }
   };
 
-  const filteredRequests = studentLeaveRequests.filter((request) => {
-    const matchesSearch = request.name
-      .toLowerCase()
-      .includes(filters.search.toLowerCase());
+  const getStatusCount = (status) => {
+    return leaveRequests.filter((request) => request.status === status).length;
+  };
+
+  const filteredRequests = leaveRequests.filter((request) => {
+    const searchStr = filters.search.toLowerCase();
+
+    const matchesSearch =
+      (request.Student_Name &&
+        request.Student_Name.toLowerCase().includes(searchStr)) ||
+      (request.Staff_Name && request.Staff_Name.toLowerCase().includes(searchStr)) ||
+      (request.sid && String(request.sid).toLowerCase().includes(searchStr));
+
     const matchesStatus =
       filters.status === "all" || request.status === filters.status;
 
@@ -115,6 +141,14 @@ const MainFacultyLeave = () => {
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  if (loading && leaveRequests.length === 0) {
+    return <p>Loading...</p>;
+  }
+
+  if (error) {
+    return <p>Error: {error}</p>;
+  }
 
   return (
     <>
@@ -202,14 +236,13 @@ const MainFacultyLeave = () => {
                       <option value="rejected" className="text-white">
                         Rejected
                       </option>
-                    </select>
-                  </div>
+                    </select></div>
                 </div>
 
                 <div className="grid gap-4 bg-white p-5">
                   {filteredRequests.map((request) => (
                     <motion.div
-                      key={request.id}
+                      key={request.lid}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
@@ -218,7 +251,7 @@ const MainFacultyLeave = () => {
                         <CardContent className="p-6">
                           <div className="flex items-start gap-4">
                             <Avatar
-                              src={request.avatar}
+                              src={request.image}
                               className="w-12 h-12"
                               sx={{ bgcolor: "#0056d2" }}
                             ></Avatar>
@@ -226,10 +259,10 @@ const MainFacultyLeave = () => {
                               <div className="flex items-center justify-between mb-2">
                                 <div>
                                   <h3 className="text-lg font-semibold">
-                                    {request.name}
+                                    {request.Student_Name || request.Staff_Name}
                                   </h3>
                                   <p className="text-sm text-gray-600">
-                                    {request.department}
+                                    {request.Department || `${request.Class} - ${request.Section}`}
                                   </p>
                                 </div>
                                 <div
@@ -258,7 +291,7 @@ const MainFacultyLeave = () => {
                                     Duration
                                   </Label>
                                   <p className="text-gray-900">
-                                    {request.startDate} to {request.endDate}
+                                    {new Date(request.from_date).toLocaleDateString()} to {new Date(request.to_date).toLocaleDateString()}
                                   </p>
                                 </div>
                               </div>
@@ -269,7 +302,7 @@ const MainFacultyLeave = () => {
                                     variant="outline"
                                     className="border-red-500 text-red-500 hover:bg-red-50"
                                     onClick={() =>
-                                      handleStatusChange(request.id, "rejected")
+                                      handleStatusChange(request.lid, "rejected")
                                     }
                                   >
                                     Reject
@@ -277,7 +310,7 @@ const MainFacultyLeave = () => {
                                   <Button
                                     className="bg-[#226cbe] text-white hover:bg-[#226cbe] rounded-full"
                                     onClick={() =>
-                                      handleStatusChange(request.id, "approved")
+                                      handleStatusChange(request.lid, "approved")
                                     }
                                   >
                                     Approve

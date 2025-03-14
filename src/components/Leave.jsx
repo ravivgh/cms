@@ -1,63 +1,48 @@
 import { useEffect, useRef, useState } from "react";
-import logo from "../assets/logo.png";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const FacultyLogin = ({
   numberOfTeeth = 120,
   animationDuration = 5000,
-  facultyName = "Dr. Sara Smith",
+  facultyName = localStorage.getItem("Student_Name") || localStorage.getItem("staff_name"),
 }) => {
-  const videoRef = useRef(null);
   const [state, setState] = useState({
     faceDetected: false,
     showTeeth: true,
     showBorder: false,
     progress: 0,
     teethHighlighted: 0,
-    leaveData: { reason: "", startDate: "", endDate: "" },
+    leaveData: { reason: "", startDate: null, endDate: null },
     submissionStatus: null,
+    errors: {},
   });
 
   const COLORS = {
-    primary: "#0A66C2", // LinkedIn Blue
+    primary: "#0A66C2",
     secondary: "#FFFFFF",
-    accent: "#737373", // Gray-600
-    background: "#F3F2EF", // Light Gray Background
+    accent: "#737373",
+    background: "#F3F2EF",
     highlight: "rgba(10, 102, 194, 0.9)",
     inactive: "rgba(120, 120, 120, 0.3)",
-    success: "#00A0DC", // Lighter Blue for Success
+    success: "#00A0DC",
+    error: "#FF0000",
   };
   const TEETH_RADIUS = 90;
 
-  // Teeth path generation
   const getTeethPaths = () => {
     const paths = [];
     const deltaAngle = (2 * Math.PI) / Math.max(1, numberOfTeeth);
     for (let i = 0; i < numberOfTeeth; i++) {
       const angle = deltaAngle * i;
-      const pathData = `M ${TEETH_RADIUS * Math.cos(angle)} ${
-        TEETH_RADIUS * Math.sin(angle)
-      } A ${TEETH_RADIUS} ${TEETH_RADIUS} 0 0 1 ${
-        TEETH_RADIUS * Math.cos(angle + deltaAngle)
-      } ${TEETH_RADIUS * Math.sin(angle + deltaAngle)} L 0 0 Z`;
+      const pathData = `M ${TEETH_RADIUS * Math.cos(angle)} ${TEETH_RADIUS * Math.sin(angle)} A ${TEETH_RADIUS} ${TEETH_RADIUS} 0 0 1 ${TEETH_RADIUS * Math.cos(angle + deltaAngle)} ${TEETH_RADIUS * Math.sin(angle + deltaAngle)} L 0 0 Z`;
       paths.push(pathData);
     }
     return paths;
   };
   const teethPaths = getTeethPaths();
 
-  // Setup and animation
   useEffect(() => {
-    const initCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      } catch (err) {
-        console.error("Camera error:", err);
-      }
-    };
-
     const startTime = Date.now();
     let rafId;
     const updateProgress = () => {
@@ -71,18 +56,10 @@ const FacultyLogin = ({
       if (progress < 1) rafId = requestAnimationFrame(updateProgress);
     };
 
-    initCamera();
     rafId = requestAnimationFrame(updateProgress);
 
     const detectionTimer = setTimeout(() => {
       setState((prev) => ({ ...prev, faceDetected: true }));
-      const utterance = new SpeechSynthesisUtterance(
-        "Identity verified. Please enter your leave details."
-      );
-      utterance.volume = 1;
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      window.speechSynthesis.speak(utterance);
     }, 3000);
 
     const borderTimer = setTimeout(() => {
@@ -93,42 +70,115 @@ const FacultyLogin = ({
       cancelAnimationFrame(rafId);
       clearTimeout(detectionTimer);
       clearTimeout(borderTimer);
-      const stream = videoRef.current?.srcObject;
-      if (stream) stream.getTracks().forEach((track) => track.stop());
       window.speechSynthesis.cancel();
     };
   }, [animationDuration, numberOfTeeth]);
 
-  // Form handling
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setState((prev) => ({
       ...prev,
       leaveData: { ...prev.leaveData, [name]: value },
+      errors: { ...prev.errors, [name]: "" },
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleStartDateChange = (date) => {
+    setState((prev) => ({
+      ...prev,
+      leaveData: { ...prev.leaveData, startDate: date },
+      errors: { ...prev.errors, startDate: "" },
+    }));
+  };
+
+  const handleEndDateChange = (date) => {
+    setState((prev) => ({
+      ...prev,
+      leaveData: { ...prev.leaveData, endDate: date },
+      errors: { ...prev.errors, endDate: "" },
+    }));
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    const errors = {};
+    const { reason, startDate, endDate } = state.leaveData;
+
+    if (!reason.trim()) {
+      errors.reason = "Reason is required";
+      isValid = false;
+    }
+
+    if (!startDate) {
+      errors.startDate = "Start date is required";
+      isValid = false;
+    }
+
+    if (!endDate) {
+      errors.endDate = "End date is required";
+      isValid = false;
+    }
+
+    if (startDate && endDate && startDate > endDate) {
+      errors.endDate = "End date must be after start date";
+      isValid = false;
+    }
+
+    setState((prev) => ({ ...prev, errors }));
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setState((prev) => ({ ...prev, submissionStatus: "submitting" }));
-    setTimeout(() => {
-      console.log("Leave Request Submitted:", state.leaveData);
-      setState((prev) => ({ ...prev, submissionStatus: "success" }));
-      const utterance = new SpeechSynthesisUtterance(
-        "Leave request submitted successfully."
-      );
-      window.speechSynthesis.speak(utterance);
+
+    const leaveData = {
+      tid: parseInt(localStorage.getItem("staff_id")),
+      startDate: state.leaveData.startDate,
+      endDate: state.leaveData.endDate,
+      reason: state.leaveData.reason,
+      college_id: parseInt(localStorage.getItem("college_id")),
+    };
+
+    try {
+      const response = await fetch("http://localhost:5472/services/addleaveforstaff", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(leaveData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setState((prev) => ({ ...prev, submissionStatus: "success" }));
+        setTimeout(
+          () => setState((prev) => ({ ...prev, submissionStatus: null })),
+          3000
+        );
+      } else {
+        setState((prev) => ({ ...prev, submissionStatus: "error", errors: { ...prev.errors, general: data.message || "Failed to submit leave request." } }));
+        setTimeout(
+          () => setState((prev) => ({ ...prev, submissionStatus: null, errors: { ...prev.errors, general: "" } })),
+          3000
+        );
+      }
+    } catch (error) {
+      setState((prev) => ({ ...prev, submissionStatus: "error", errors: { ...prev.errors, general: "Network error. Please try again." } }));
       setTimeout(
-        () => setState((prev) => ({ ...prev, submissionStatus: null })),
+        () => setState((prev) => ({ ...prev, submissionStatus: null, errors: { ...prev.errors, general: "" } })),
         3000
       );
-    }, 1000);
+      console.error("Error submitting leave request:", error);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#F3F2EF] flex items-center justify-center p-6">
-      <div className="relative max-w-4xl w-full bg-white rounded-xl  p-8 flex gap-10 border border-gray-200">
-        {/* Scanner Section */}
+      <div className="relative max-w-4xl w-full bg-white rounded-xl p-8 flex gap-10 border border-gray-200">
         <div className="relative flex-shrink-0 w-72">
           {!state.faceDetected ? (
             <>
@@ -144,11 +194,7 @@ const FacultyLogin = ({
                     <path
                       key={index}
                       d={pathData}
-                      fill={
-                        index < state.teethHighlighted
-                          ? COLORS.highlight
-                          : COLORS.inactive
-                      }
+                      fill={index < state.teethHighlighted ? COLORS.highlight : COLORS.inactive}
                       stroke="rgba(10, 102, 194, 0.2)"
                       strokeWidth="0.6"
                       transform={`rotate(${(360 / numberOfTeeth) * index})`}
@@ -158,11 +204,8 @@ const FacultyLogin = ({
                 </svg>
               )}
               <div className="relative w-72 h-72 rounded-full overflow-hidden border-2 border-[#0A66C2]/20 shadow-md">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
+                <img
+                  src={`http://localhost:5472/profilepics/${localStorage.getItem("student_id")}.png`}alt="Profile"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0A66C2]/5 to-transparent animate-scan"></div>
@@ -170,11 +213,9 @@ const FacultyLogin = ({
             </>
           ) : (
             <div className="relative w-72 h-72 rounded-full overflow-hidden border-4 border-[#00A0DC] shadow-[0_0_15px_rgba(0,160,220,0.3)] animate-fade-in">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
+              <img
+                src={`http://localhost:5472/profilepics/${localStorage.getItem("student_id")}.png`}
+                alt="Profile"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -201,13 +242,8 @@ const FacultyLogin = ({
           )}
         </div>
 
-        {/* Content Section */}
         <div className="flex-1 space-y-6">
           <div className="flex items-center gap-3">
-            {/* <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
-            <span className="text-[#0A66C2] text-lg font-semibold">
-              Faculty Portal
-            </span> */}
           </div>
 
           <div className="space-y-3">
@@ -220,7 +256,6 @@ const FacultyLogin = ({
             </p>
           </div>
 
-          {/* Status and Form */}
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6F0FA] border border-[#0A66C2]/20">
               <div
@@ -251,32 +286,47 @@ const FacultyLogin = ({
                       className="mt-1 w-full p-3 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all duration-300 min-h-[100px]"
                       required
                     />
+                    {state.errors.reason && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {state.errors.reason}
+                      </p>
+                    )}
                   </div>
-                  <div>
-                    <label className="text-gray-700 text-sm font-medium">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      value={state.leaveData.startDate}
-                      onChange={handleInputChange}
-                      className="mt-1 w-full p-3 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all duration-300"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-700 text-sm font-medium">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      name="endDate"
-                      value={state.leaveData.endDate}
-                      onChange={handleInputChange}
-                      className="mt-1 w-full p-3 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all duration-300"
-                      required
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-gray-700 text-sm font-medium">
+                        Start Date
+                      </label>
+                      <DatePicker
+                        selected={state.leaveData.startDate}
+                        onChange={handleStartDateChange}
+                        className="mt-1 w-full p-3 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all duration-300"
+                        placeholderText="Select start date"
+                        dateFormat="dd/MM/yyyy"
+                      />
+                      {state.errors.startDate && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {state.errors.startDate}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-gray-700 text-sm font-medium">
+                        End Date
+                      </label>
+                      <DatePicker
+                        selected={state.leaveData.endDate}
+                        onChange={handleEndDateChange}
+                        className="mt-1 w-full p-3 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-[#0A66C2] focus:border-[#0A66C2] transition-all duration-300"
+                        placeholderText="Select end date"
+                        dateFormat="dd/MM/yyyy"
+                      />
+                      {state.errors.endDate && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {state.errors.endDate}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <button
@@ -293,13 +343,17 @@ const FacultyLogin = ({
                     Leave Request Submitted Successfully!
                   </p>
                 )}
+                {state.submissionStatus === "error" && state.errors.general && (
+                  <p className="text-[#FF0000] text-center text-sm animate-fade-in">
+                    {state.errors.general}
+                  </p>
+                )}
               </form>
             )}
           </div>
         </div>
       </div>
 
-      {/* Custom Styles */}
       <style jsx>{`
         @keyframes pulse {
           0%,
@@ -352,7 +406,7 @@ const FacultyLogin = ({
             opacity: 1;
           }
           100% {
-            stroke-dasharray: 100 100;
+            stroke-dasharray:100 10;
             opacity: 1;
           }
         }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -33,6 +33,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import * as XLSX from "xlsx";
+import { RiFileExcel2Fill } from "react-icons/ri";
+import axios from "axios";
 
 const AdvancedStudentManagement = () => {
   const [activeView, setActiveView] = useState("grid");
@@ -44,10 +47,13 @@ const AdvancedStudentManagement = () => {
   const [sortOrder, setSortOrder] = useState("asc");
   const [name, setName] = useState("");
   const [className, setClassName] = useState("");
+  const [SectionName, setSectionName] = useState("");
   const [address, setAddress] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
+  const [dob, setDob] = useState("");
   const [classFilter, setClassFilter] = useState("all");
+  const[studentpro,setStudentpro] = useState({})
   const [studentData, setStudentData] = useState([
     {
       id: "ST001",
@@ -57,6 +63,7 @@ const AdvancedStudentManagement = () => {
       mobile: "(555) 123-4567",
       email: "john.doe@example.com",
       avatar: "https://avatars.githubusercontent.com/u/1?v=4",
+      
     },
     {
       id: "ST002",
@@ -86,12 +93,18 @@ const AdvancedStudentManagement = () => {
     mobile: "",
     email: "",
   });
-  // Calculate unique classes and their student counts
+  const studentId = localStorage.getItem("student_id");
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const classStats = studentData.reduce((acc, student) => {
     acc[student.className] = (acc[student.className] || 0) + 1;
     return acc;
   }, {});
   const uniqueClasses = Object.keys(classStats);
+
   const validateFields = () => {
     const newErrors = {};
 
@@ -118,28 +131,80 @@ const AdvancedStudentManagement = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  const handleAddStudent = (e) => {
+
+  const handleAddStudent = async (e) => {
     e.preventDefault();
     if (!validateFields()) return;
 
     const newStudent = {
-      id: `ST${Math.floor(Math.random() * 1000)}`,
-      name,
-      className,
-      address,
-      mobile,
-      email,
-      avatar: `https://example.com/default-avatar.jpg`,
+      _id: Math.floor(Math.random() * 1000),
+      Student_Name: name,
+      Class: className,
+      Section: SectionName,
+      DOB: dob,
+      Email: email,
+      address: address,
+      Mobile: mobile,
+      avatar: "https://example.com/default-avatar.jpg", 
     };
-    setStudentData([...studentData, newStudent]);
-    setIsAddModalOpen(false);
-    setName("");
-    setClassName("");
-    setAddress("");
-    setMobile("");
-    setEmail("");
+
+    try {
+      const response = await axios.post('http://localhost:5472/services/addstudent', {
+        studentdata: [newStudent],
+        collecname: "Student_Master",
+      });
+
+      if (response.status === 200) {
+        setStudentData([...studentData, newStudent]);
+        setIsAddModalOpen(false);
+        setName("");
+        setClassName("");
+        setSectionName("");
+        setAddress("");
+        setMobile("");
+        setEmail("");
+        setDob("");
+        setErrors({ name: "", className: "", mobile: "", email: "" });
+      }
+    } catch (error) {
+      console.error('Error adding students:', error);
+    }
   };
 
+  const selectAll = async () => {
+    try {
+      let response;
+      if (!localStorage.getItem("staff_id")) {
+        response = await axios.post("http://localhost:5472/services/retrievestudentsadmin");
+      } else {
+        response = await axios.post("http://localhost:5472/services/retrievestudents", {
+          staffid: parseInt(localStorage.getItem("staff_id")),
+        });
+      }
+  
+      const apiStudents = response.data.map((student) => ({
+        id: student._id,
+        name: student.Student_Name,
+        className: student.Class,
+        dob: student.DOB,
+        email: student.Email,
+        mobile: student.Mobile,
+        section: student.Section,
+        address: student.address,
+        avatar:  student._id 
+          ? `http://localhost:5472/profilepics/${student._id}.png`
+          : "https://example.com/default-avatar.jpg",
+      }));
+  
+      setStudentData(apiStudents);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+  
+  const fetchData = async () => {
+    await selectAll();
+  };
   const handleEditStudent = (student) => {
     setEditStudent(student);
     setName(student.name);
@@ -159,7 +224,6 @@ const AdvancedStudentManagement = () => {
       address,
       mobile,
       email,
-      avatar: `https://example.com/default-avatar.jpg`,
     };
     setStudentData(
       studentData.map((student) =>
@@ -167,23 +231,46 @@ const AdvancedStudentManagement = () => {
       )
     );
     setEditStudent(null);
-    setName("");
-    setClassName("");
-    setAddress("");
-    setMobile("");
-    setEmail("");
   };
 
   const handleDeleteClick = (id) => {
     setDeleteStudentId(id);
     setOpenDropdownId(null);
   };
+  const deleteStudent = async (id) => {
+    try {
+      const response = await axios.post("http://localhost:5472/services/deletestudent", {
+        id: id,
+      });
 
-  const confirmDelete = () => {
-    setStudentData(
-      studentData.filter((student) => student.id !== deleteStudentId)
-    );
-    setDeleteStudentId(null);
+      if (response.status === 200) {
+        return response.data;
+      } else {
+        throw new Error("Failed to delete student");
+      }
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      throw error;
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const response = await deleteStudent(deleteStudentId);
+      
+      setStudentData((prevData) =>
+        prevData.filter((student) => student.id !== deleteStudentId)
+      );
+
+      
+      setDeleteStudentId(null);
+
+      
+      console.log(response.message); 
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      alert("Failed to delete student. Please try again.");
+    }
   };
 
   const cancelDelete = () => {
@@ -193,46 +280,133 @@ const AdvancedStudentManagement = () => {
   const filteredData = studentData
     .filter((student) => {
       if (classFilter === "all") return true;
-      return student.className === classFilter;
+      return student.className === classFilter || student.Class === classFilter;
     })
-    .filter(
-      (student) =>
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.mobile.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    .filter((student) => {
+      const name = student.name || "";
+      const className = student.className || "";
+      let mobile = student.mobile || "";
+      const email = student.email || "";
+      const address = student.address || "";
+
+      const searchTermLower = searchTerm.toLowerCase();
+
+      if (typeof mobile === 'number') {
+        mobile = mobile.toString();
+      }
+
+      return (
+        name.toLowerCase().includes(searchTermLower) ||
+        className.toLowerCase().includes(searchTermLower) ||
+        address.toLowerCase().includes(searchTermLower) ||
+        (typeof mobile === 'string' && mobile.toLowerCase().includes(searchTermLower)) ||
+        email.toLowerCase().includes(searchTermLower)
+      );
+    })
     .sort((a, b) => {
       const order = sortOrder === "asc" ? 1 : -1;
-      return a[sortBy].localeCompare(b[sortBy]) * order;
+      const valueA = a[sortBy] || "";
+      const valueB = b[sortBy] || "";
+      return valueA.toString().localeCompare(valueB.toString()) * order;
     });
+
   const totalStudents = filteredData.length;
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      setImportStatus("processing");
-      setTimeout(() => {
-        const sampleImportedData = [
-          {
-            id: `ST${Math.floor(Math.random() * 1000)}`,
-            name: "Imported Student",
-            className: "12A",
-            address: "999 Import Lane",
-            mobile: "(555) 999-8888",
-            email: "import.student@example.com",
-            avatar: "https://example.com/default-avatar.jpg",
-          },
+    const reader = new FileReader();
+  
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result); // Use e.target.result
+        const workbook = XLSX.read(data, { type: "array" });
+  
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        let jsonData = XLSX.utils.sheet_to_json(worksheet);
+        let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  
+        if (!header || header.length === 0) {
+          alert("The Excel file is empty or improperly formatted.");
+          return;
+        }
+  
+        const firstRow = header[0];
+        const requiredHeaders = [
+          "_id",
+          "Student_Name",
+          "Class",
+          "Section",
+          "DOB",
+          "Email",
+          "Mobile",
+          "Address"
         ];
-        setStudentData((prev) => [...prev, ...sampleImportedData]);
-        setImportStatus("success");
-        setTimeout(() => {
-          setImportStatus(null);
-          setIsImportModalOpen(false);
-        }, 2000);
-      }, 1500);
-    }
+  
+        const isValidFormat = requiredHeaders.every((header) =>
+          firstRow.includes(header)
+        );
+  
+        if (isValidFormat) {
+          jsonData = jsonData.map((student) => ({
+            ...student,
+            college_id: parseInt(localStorage.getItem("college_id")), 
+          }));
+  
+          if (insertstudents(jsonData)) {
+            
+            setImportStatus("Success");
+  
+            
+            setStudentData((prev) => [...prev, ...jsonData]);
+            setImportStatus("success");
+            setTimeout(() => {
+              setImportStatus(null);
+              setIsImportModalOpen(false);
+            }, 2000);
+          }
+        } else {
+          alert("Excel file should be in the correct format.");
+        }
+      } catch (error) {
+        console.error("Error parsing Excel file:", error);
+        alert("Invalid Excel file. Please upload a valid file.");
+      }
+    };
+  
+    reader.onerror = (error) => {
+      console.error("Error reading file:", error);
+      alert("Failed to read the file. Please try again.");
+    };
+  
+    reader.readAsArrayBuffer(file); // Use file, not excel
   };
+  
+  const insertstudents = async (studentdata) => {
+        try {
+          let addstudent = await axios.post(
+            "http://localhost:5472/services/addstudentimport",
+            { studentdata, collecname: "Student_Master" },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+    
+          if (addstudent) {
+            selectAll()
+            return true;
+            
+          } else {
+            console.log("Error");
+            setImportStatus("Error");
+            return false;
+          }
+        } catch (err) {
+          console.log(err);
+        }
+      };
 
   const ImportModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -523,6 +697,27 @@ const AdvancedStudentManagement = () => {
                         sx={textFieldStyles}
                       />
                       <TextField
+                        label="Section"
+                        variant="outlined"
+                        value={SectionName}
+                        onChange={(e) => {
+                          setSectionName(e.target.value);
+                          setErrors((prev) => ({ ...prev, SectionName: "" }));
+                        }}
+                        error={!!errors.SectionName}
+                        helperText={errors.SectionName}
+                        required
+                        sx={textFieldStyles}
+                      />
+                      <TextField
+                        label="Date of Birth"
+                        variant="outlined"
+                        value={dob}
+                        onChange={(e) => setDob(e.target.value)}
+                        type="date"
+                        sx={textFieldStyles}
+                      />
+                      <TextField
                         label="Address"
                         variant="outlined"
                         value={address}
@@ -608,11 +803,12 @@ const AdvancedStudentManagement = () => {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
+                      {/*
                       <DropdownMenuItem
                         onClick={() => handleEditStudent(student)}
                       >
                         Edit
-                      </DropdownMenuItem>
+                      </DropdownMenuItem>*/}
                       <DropdownMenuItem
                         onClick={() => handleDeleteClick(student.id)}
                       >
@@ -699,13 +895,13 @@ const AdvancedStudentManagement = () => {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem
+                        {/*<DropdownMenuItem
                           onClick={() => handleEditStudent(student)}
                         >
                           Edit
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>*/}
                         <DropdownMenuItem
-                          onClick={() => handleDeleteClick(student.id)}
+                          onClick={() => handleDeleteClick(student._id)}
                         >
                           Delete
                         </DropdownMenuItem>

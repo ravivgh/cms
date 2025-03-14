@@ -66,7 +66,7 @@ const chartConfig = {
   },
 };
 
-const Chart = () => {
+const Chart = (present,absent,total) => {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [chartData, setChartData] = useState([]);
@@ -88,12 +88,12 @@ const Chart = () => {
       const data = [
         {
           status: "Present",
-          count: Math.floor(Math.random() * 100) + 50,
+          count: present,
           fill: "#4a805f",
         },
         {
           status: "Absent",
-          count: Math.floor(Math.random() * 100) + 20,
+          count: absent,
           fill: "#27282c",
         },
       ];

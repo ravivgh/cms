@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Avatar } from "@mui/material";
 import { Label } from "@/components/ui/label";
@@ -8,47 +8,55 @@ import { MdCheckCircle, MdCancel, MdPending } from "react-icons/md";
 import { Search } from "lucide-react";
 
 const AllLeaveList = () => {
-  const [leaveRequests, setLeaveRequests] = useState([
-    {
-      id: 1,
-      name: "Dr. John Smith",
-      role: "Faculty",
-      department: "Computer Science",
-      reason: "Medical Leave",
-      startDate: "2024-03-20",
-      endDate: "2024-03-25",
-      status: "pending",
-      avatar: "https://avatars.githubusercontent.com/u/5?v=4",
-    },
-    {
-      id: 2,
-      name: "Meet Patel",
-      role: "Student",
-      department: "Information Technology",
-      reason: "Family Emergency",
-      startDate: "2024-03-22",
-      endDate: "2024-03-24",
-      status: "approved",
-      avatar: "https://avatars.githubusercontent.com/u/6?v=4",
-    },
-    {
-      id: 3,
-      name: "Sarah Wilson",
-      role: "Faculty",
-      department: "Data Science",
-      reason: "Conference Attendance",
-      startDate: "2024-03-25",
-      endDate: "2024-03-28",
-      status: "rejected",
-      avatar: "https://avatars.githubusercontent.com/u/7?v=4",
-    },
-  ]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
     role: "all",
   });
+
+  useEffect(() => {
+    const fetchLeaveRequests = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          "http://localhost:5472/services/getleaverequest",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              college_id: localStorage.getItem("college_id"),
+              status: filters.status === "all" ? null : filters.status,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch leave requests");
+        }
+
+        const data = await response.json();
+        if (data && data.data) {
+          setLeaveRequests(data.data);
+        } else {
+          setLeaveRequests([]);
+        }
+      } catch (err) {
+        setError(err.message);
+        console.error("Error fetching leave requests:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaveRequests();
+  }, [filters.status]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
@@ -57,12 +65,32 @@ const AllLeaveList = () => {
     }));
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    setLeaveRequests((prev) =>
-      prev.map((request) =>
-        request.id === id ? { ...request, status: newStatus } : request
-      )
-    );
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const response = await fetch(
+        `http://localhost:5472/services/updateleaverequest/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: id, status: newStatus }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update leave status");
+      }
+
+      setLeaveRequests((prev) =>
+        prev.map((request) =>
+          request.lid === id ? { ...request, status: newStatus } : request
+        )
+      );
+    } catch (err) {
+      setError(err.message);
+      console.error("Error updating leave status:", err);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -92,25 +120,37 @@ const AllLeaveList = () => {
   };
 
   const filteredRequests = leaveRequests.filter((request) => {
-    const matchesSearch = request.name
-      .toLowerCase()
-      .includes(filters.search.toLowerCase());
+    const searchStr = filters.search.toLowerCase();
+
+    const matchesSearch =
+      (request.Student_Name &&
+        request.Student_Name.toLowerCase().includes(searchStr)) ||
+      (request.Staff_Name &&
+        request.Staff_Name.toLowerCase().includes(searchStr)) ||
+      (request.sid && String(request.sid).toLowerCase().includes(searchStr));
+
     const matchesStatus =
       filters.status === "all" || request.status === filters.status;
-    const matchesRole = filters.role === "all" || request.role === filters.role;
+    const matchesRole = filters.role === "all" || request.type === filters.role;
 
     return matchesSearch && matchesStatus && matchesRole;
   });
+
+  if (loading && leaveRequests.length === 0) {
+    return <p>Loading...</p>;
+  }
+
+  if (error) {
+    return <p>Error: {error}</p>;
+  }
 
   return (
     <div className=" mx-auto p-6 bg-[#1d1e22]">
       <h1 className="text-white text-2xl font-medium my-10 mx-5">
         Leave Management
       </h1>
-      {/* Header Section - Styled like AddCourse.jsx */}
       <div className="rounded-2xl shadow-sm p-6 mb-6 bg-[#2b2d31] mx-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Search - Styled like AddFaculty.jsx */}
           <div className="relative flex-grow md:flex-grow-0">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
@@ -122,7 +162,6 @@ const AllLeaveList = () => {
             />
           </div>
 
-          {/* Filters - Styled like AddFaculty.jsx */}
           <div className="flex items-center space-x-4">
             <select
               value={filters.status}
@@ -162,7 +201,6 @@ const AllLeaveList = () => {
         </div>
       </div>
 
-      {/* Stats Cards - Similar to profile pages */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <Card className="bg-gradient-to-br bg-[#2b2d31] border border-gray-600 ">
           <CardContent className="p-4">
@@ -188,10 +226,10 @@ const AllLeaveList = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-[#2b2d31] border border-gray-600">
+        <Card className="bg-[#2b[#2b2d31] border border-gray-600">
           <CardContent className="p-4">
             <div className="flex justify-between items-center">
-              <div className=" space-y-3">
+              <div className="space-y-3">
                 <p className="text-sm text-gray-200">Approved</p>
                 <p className="text-2xl font-bold text-white">
                   {getStatusCount("approved")}
@@ -214,7 +252,6 @@ const AllLeaveList = () => {
         </Card>
       </div>
 
-      {/* Leave Requests List */}
       <div className="grid gap-4 bg-white p-5">
         {filteredRequests.length === 0 ? (
           <Card className="p-8 text-center bg-[#f2f2f2]">
@@ -227,7 +264,7 @@ const AllLeaveList = () => {
         ) : (
           filteredRequests.map((request) => (
             <motion.div
-              key={request.id}
+              key={request._id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -240,17 +277,22 @@ const AllLeaveList = () => {
                       className="w-12 h-12"
                       sx={{
                         bgcolor:
-                          request.role === "Faculty" ? "#b3206f" : "#0056d2",
+                          request.type === "Faculty" ? "#b3206f" : "#0056d2",
                       }}
                     ></Avatar>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <h3 className="text-lg font-semibold">
-                            {request.name}
+                            {request.Student_Name ||
+                              request.Staff_Name ||
+                              request.sid}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            {request.role} • {request.department}
+                            {request.type} •{" "}
+                            {request.Class && request.Section
+                              ? request.Class + " " + request.Section
+                              : ""}
                           </p>
                         </div>
                         <div
@@ -273,7 +315,9 @@ const AllLeaveList = () => {
                         <div>
                           <Label className="text-gray-600">Duration</Label>
                           <p className="text-gray-900">
-                            {request.startDate} to {request.endDate}
+                            {new Date(request.from_date).toLocaleDateString()}{" "}
+                            to{" "}
+                            {new Date(request.to_date).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -284,7 +328,7 @@ const AllLeaveList = () => {
                             variant="outline"
                             className="border-red-500 text-red-500 hover:bg-red-50"
                             onClick={() =>
-                              handleStatusChange(request.id, "rejected")
+                              handleStatusChange(request.lid, "rejected")
                             }
                           >
                             Reject
@@ -292,7 +336,7 @@ const AllLeaveList = () => {
                           <Button
                             className="bg-[#226cbe] text-white hover:bg-[#226cbe] rounded-full"
                             onClick={() =>
-                              handleStatusChange(request.id, "approved")
+                              handleStatusChange(request.lid, "approved")
                             }
                           >
                             Approve

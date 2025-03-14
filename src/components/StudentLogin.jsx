@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PiStudentFill } from "react-icons/pi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,62 +12,76 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { IoIosCamera } from "react-icons/io";
-
 import Camera from "react-html5-camera-photo";
 import "react-html5-camera-photo/build/css/index.css";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { IoIosArrowRoundForward } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import ClipLoader from "react-spinners/ClipLoader";
+import validatestudlogin from "./scripts/validate_student_login.js";
+import axios from "axios";
 
 const StudentLogin = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePicupload, isProfilePicupload] = useState(false);
   const [otp, setOtp] = useState(""); // State to hold OTP
   const [isOtpValid, setIsOtpValid] = useState(false);
   const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [isButtonDisabled, setIsButtonDisabled] = useState(true);
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [isLoaderVisible, setLoaderVisible] = useState(false);
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email regex
+    return emailRegex.test(email);
+  };
+
+  
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsEmailValid(validateEmail(newEmail)); 
+  };
   const [loading, setLoading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const navigate = useNavigate();
 
-  // const isButtonDisabled = !email;
+  const isButtonDisabled = !email;
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-    if (!emailPattern.test(e.target.value)) {
-      setError("Please enter a valid email address");
-      setIsButtonDisabled(true);
+  const handleOtpChange = (otp) => {
+    let matchotp = localStorage.getItem("otp");
+    if (otp == matchotp) {
+      setIsOtpValid(true);
     } else {
-      setError("");
-      setIsButtonDisabled(false);
+      setIsOtpValid(false);
     }
   };
-  const handleOtpChange = (otp) => {
-    setOtp(otp);
-    console.log(otp);
-    // Check if the OTP length is 4 (or your required length) and update validity
-    setIsOtpValid(otp.length === 4);
-  };
-  const handleDrawerToggle = (e) => {
+  const handleDrawerToggle = async (e) => {
     e.preventDefault();
-    setIsDrawerOpen((prev) => !prev);
+    if (await validatestudlogin(email)) {
+      setIsDrawerOpen((prev) => !prev);
+    } else {
+      alert("Student with Email not Found");
+      setIsDrawerOpen(false);
+    }
   };
   const handleVerify = () => {
     if (isOtpValid) {
-      setIsVerifying(true); // Start loading
-
-      // Simulate verification process with 3-second delay
-      setTimeout(() => {
-        setIsVerifying(false); // Stop loading
-        setStep(2); // Proceed to next step
-      }, 3000);
+      let profile_pic = localStorage.getItem("profile_pic");
+      setLoaderVisible(true);
+      if (profile_pic == "true") {
+        setLoading(true);
+        setTimeout(() => {
+          setLoading(false);
+          setLoaderVisible(false);
+          navigate("/studentdashboard");
+        }, 3000);
+        console.log("Not updated");
+      } else {
+        setLoaderVisible(false);
+        setStep(2);
+      }
     } else {
       alert("Please enter a valid OTP");
     }
@@ -77,17 +91,57 @@ const StudentLogin = () => {
     setIsCameraOpen(true);
   };
 
-  const handleTakePhoto = (dataUri) => {
+  const dataURItoBlob = (dataUri) => {
+    const byteString = atob(dataUri.split(",")[1]);
+    const mimeString = dataUri.split(",")[0].split(":")[1].split(";")[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  };
+  const handleTakePhoto = async (dataUri) => {
     setProfilePicture(dataUri);
     setIsCameraOpen(false);
     console.log(dataUri);
+    isProfilePicupload(true);
   };
-  const fileInputRef = useRef(null);
-  const handleChooseFileClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+
+  const upload_pic = async () => {
+    const imageBlob = dataURItoBlob(profilePicture);
+    const formData = new FormData();
+    formData.append(
+      "file",
+      imageBlob,
+      localStorage.getItem("student_id") + ".png"
+    );
+    formData.append("picname", localStorage.getItem("student_id") + ".png");
+    formData.append("stdid", parseInt(localStorage.getItem("student_id")));
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/studenpicupload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        isProfilePicupload(true);
+        return true;
+      } else {
+        isProfilePicupload(false);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
     }
   };
+
   const handlePictureChange = (e) => {
     console.log("object");
     const file = e.target.files[0];
@@ -106,7 +160,7 @@ const StudentLogin = () => {
   // };
 
   const handleSubmit = () => {
-    if (profilePicture) {
+    if (profilePicture && upload_pic()) {
       setLoading(true);
 
       setTimeout(() => {
@@ -128,7 +182,7 @@ const StudentLogin = () => {
               Access your attendance, resources, and academic progress all in
               one place.
             </p>
-            <div className="student-band flex  items-center justify-center  bg-[#a7d6aa] py-2 px-3 mt-9 w-fit gap-1  rounded-full mx-auto lg:mx-0 ">
+            <div className="student-band flex  items-center justify-center  bg-[#a7d6aa] p-2 mt-9 w-[210px] rounded-full mx-auto lg:mx-0 ">
               <PiStudentFill style={{ fontSize: "20px", color: "black" }} />
               <p className="text-black ml-2 md:ml-0">Track Your Attendance</p>
             </div>
@@ -168,22 +222,20 @@ const StudentLogin = () => {
                     value={email}
                     onChange={handleEmailChange}
                   />
-                  {error && (
-                    <p className="text-red-500 text-sm mt-2">{error}</p>
+                  {!isEmailValid && email !== "" && (
+                    <p className="text-red-500 text-sm mt-1">
+                      Please enter a valid email address.
+                    </p>
                   )}
                   <div className="email-btn pt-10 flex relative items-center">
                     <Button
-                      className={`w-full p-6 mt-4 ${
-                        isButtonDisabled
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-black"
-                      } text-white rounded-md`}
+                      className="w-full p-6"
                       onClick={handleDrawerToggle}
-                      disabled={isButtonDisabled}
+                      disabled={!isEmailValid}
                     >
-                      Submit
+                      Login
                     </Button>
-                    <div className="absolute left-[200px] bottom-3">
+                    <div className="absolute left-[200px]">
                       <IoIosArrowRoundForward
                         style={{ color: "grey", fontSize: "30" }}
                       />
@@ -221,26 +273,26 @@ const StudentLogin = () => {
                     Enter your verification code
                   </h1>
                   <p className="pt-2">
-                    We sent a verification code to <span>smith@gmail.com</span>
+                    We sent a verification code to <span>{email}</span>
                   </p>
                 </div>
                 <div className="py-7">
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="https://avatars.githubusercontent.com/u/20?v=4"
+                      src="/static/images/avatar/1.jpg"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="https://avatars.githubusercontent.com/u/26?v=4"
+                      src="/static/images/avatar/2.jpg"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="https://avatars.githubusercontent.com/u/22?v=4"
+                      src="/static/images/avatar/4.jpg"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="https://avatars.githubusercontent.com/u/23?v=4"
+                      src="/static/images/avatar/5.jpg"
                     />
                   </AvatarGroup>
                 </div>
@@ -308,15 +360,8 @@ const StudentLogin = () => {
                     onClick={handleVerify}
                     disabled={!isOtpValid}
                   >
-                    {isVerifying ? (
-                      <div className="flex items-center gap-3">
-                        <ClipLoader
-                          size={20}
-                          color={"#fff"}
-                          loading={isVerifying}
-                        />
-                        <span>Verify</span>
-                      </div>
+                    {isLoaderVisible ? (
+                      <ClipLoader size={20} color={"#fff"} />
                     ) : (
                       "Verify"
                     )}
@@ -333,7 +378,7 @@ const StudentLogin = () => {
               >
                 {loading ? (
                   <div className="flex justify-center items-center h-screen">
-                    <ClipLoader size={50} color={"#123abc"} loading={loading} />
+                    <ClipLoader size={50} color={"black"} loading={loading} />
                   </div>
                 ) : (
                   <div className="profile-showcase">
@@ -373,7 +418,7 @@ const StudentLogin = () => {
                           ) : (
                             <>
                               <Button
-                                className="rounded-sm gap-1"
+                                className="rounded-sm"
                                 variant="contained"
                                 onClick={handleOpenCamera}
                                 style={{
@@ -382,24 +427,7 @@ const StudentLogin = () => {
                                   color: "white",
                                 }}
                               >
-                                <IoIosCamera className="text-lg" />
                                 Take Photo
-                              </Button>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handlePictureChange}
-                                id="file-input"
-                                ref={fileInputRef}
-                                style={{ display: "none" }}
-                              />
-
-                              <Button
-                                className="rounded-sm bg-black text-white"
-                                variant="contained"
-                                onClick={handleChooseFileClick}
-                              >
-                                Choose File
                               </Button>
                             </>
                           )}
@@ -413,7 +441,7 @@ const StudentLogin = () => {
                       <Button
                         onClick={handleSubmit}
                         variant="contained"
-                        disabled={!profilePicture}
+                        disabled={!profilePicupload}
                       >
                         Finish
                       </Button>

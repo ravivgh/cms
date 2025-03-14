@@ -53,7 +53,7 @@ const Dashboard = ({ isSidebarOpen, selectedMonth }) => {
                       <div className="relative w-48 h-48 group overflow-hidden rounded-md">
                         {/* Profile Image */}
                         <img
-                          src="https://st.depositphotos.com/63571822/54892/i/450/depositphotos_548923552-stock-photo-young-man-going-job-interview.jpg"
+                          src={`http://localhost:5472/profilepics/${localStorage.getItem("admin_id")}.png`}
                           className="w-full h-full object-cover rounded-md"
                           alt="Profile"
                         />

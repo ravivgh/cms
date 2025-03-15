@@ -116,6 +116,17 @@ const StudentCoursePage = () => {
       progress: 75,
       category: "Databases",
     },
+    {
+      id: 6,
+      points: 20,
+      image:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQp2LxGazqpKZkbhsEuahgbhIaAwbMLeGL9gA&s",
+      icon: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAXKDEpLJgjO4gALMslMWnCMmB0xRo7szjfw&s",
+      title: "os",
+      description: "Learn SQL from scratch! Learn Queries, Joins",
+      progress: 75,
+      category: "Databases",
+    },
   ];
   // Extract unique categories
   const uniqueCategories = [

@@ -1332,7 +1332,7 @@ export default function CustomizedSteppers() {
                       Select a Point
                     </CardDescription>
                     <CardContent>
-                      <div className="flex flex-col items-center ">
+                      {/* <div className="flex flex-col items-center ">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -1415,7 +1415,7 @@ export default function CustomizedSteppers() {
                             </div>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </div>
+                      </div> */}
                       <div className="flex flex-col items-center space-y-4 mt-4 ">
                         <p>Terms & Conditions</p>
 

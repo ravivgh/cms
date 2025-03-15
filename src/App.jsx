@@ -57,6 +57,8 @@ import MainStudentLeave from "./pages/MainStudentLeave";
 import MainStudentMaster from "./pages/MainStudentMaster";
 import MainStudentAppointment from "./pages/MainStudentAppointment";
 import MainStudentProfile from "./pages/MainStudentProfile";
+import FaceScan from "./components/FaceScan";
+import QnsView from "./components/QnsView";
 // import Register from "./components/Register";
 // import HomePage from "./components/HomePage";
 // import LoginPage from "./components/LoginPage";
@@ -87,13 +89,13 @@ function App() {
           <Route path="/student" element={<MainStudent />} />
           <Route path="/leave-list" element={<MainAllLeaveList />} />
           <Route path="/attendance" element={<MainAttendance />} />
-          <Route path="/attendance/viewall" element={<MainAllViewStudent />} />
+          {/* <Route path="/attendance/viewall" element={<MainAllViewStudent />} /> */}
           <Route path="/attendance/viewall/all" element={<MainStudentList />} />
           <Route path="/faculty" element={<MainFaculty />} />
           <Route path="/course" element={<MainCoursePage />} />
           <Route path="/course/addcourse" element={<MainCourseAdd />} />
           <Route path="/course/:courseId" element={<MainCourseDetalis />} />
-          <Route path="/chat" element={<MainChatMessage />} />
+          <Route path="/chat" element={<QnsView />} />
           <Route path="/collegemaster" element={<MainMaster />} />
           <Route
             path="/collegemaster/settings/appointment"
@@ -110,6 +112,7 @@ function App() {
         {/* student */}
         <Route element={<MainStudentLayout />}>
           <Route path="/studentdashboard" element={<MainStudentDashboard />} />
+          <Route path="/attendancemark" element={<FaceScan />} />
           <Route path="/student/profile" element={<MainStudentProfile />} />
           <Route path="/facultydetails" element={<MainFacultyDetails />} />
           <Route path="/code-editor" element={<MainCodeEditor />} />

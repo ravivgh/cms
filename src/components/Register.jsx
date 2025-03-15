@@ -9,6 +9,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import step1 from "../assets/step.mp4";
 import TextField from "@mui/material/TextField";
@@ -101,8 +107,14 @@ const Register = () => {
 
     return () => clearTimeout(timer);
   }, [activeIndex]);
-  const texts = ["Student", "Faculty", "Admin"];
-
+  // const texts = ["Student", "Faculty", "Admin"];
+  const colleges = [
+    "Harvard University",
+    "MIT",
+    "Stanford University",
+    "Oxford University",
+    "Cambridge University",
+  ];
   const handleNext = () => {
     setStep(step + 1);
   };
@@ -213,10 +225,10 @@ const Register = () => {
   const isPasswordValid = password.length >= 6;
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const isPhoneNumberValid = /^\d{10}$/.test(phoneNumber);
-  const totalSteps = selectedOption === "student" ? 3 : 5;
+  const totalSteps = 3;
   const progressDots = Array.from({ length: totalSteps }, (_, i) => i + 1);
-  const isFormValid =
-    isNameValid && isPasswordValid && isEmailValid && isPhoneNumberValid;
+  // const isFormValid =
+  //   isNameValid && isPasswordValid && isEmailValid && isPhoneNumberValid;
   return (
     <>
       <nav className="bg-white dark:bg-gray-900 fixed w-full z-20 top-0 left-0 border-b border-gray-200 dark:border-gray-600 shadow-md text-black">
@@ -732,98 +744,6 @@ const Register = () => {
                   >
                     {step === 1 && (
                       <div>
-                        <div className="">
-                          <h1 className="text-black text-xl pb-5 font-medium">
-                            College Information?
-                          </h1>
-                        </div>
-                        <div className="college-name relative">
-                          <TextField
-                            id="outlined-basic"
-                            label="College Name"
-                            variant="outlined"
-                            value={collegeName}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (/^[A-Za-z\s]+$/.test(value) || value === "") {
-                                setCollegeName(value.trimStart()); // Prevents leading spaces
-                              }
-                            }}
-                            placeholder="Enter here"
-                            sx={{
-                              "& .MuiOutlinedInput-root": {
-                                color: "black",
-                                width: "350px",
-
-                                "& .MuiOutlinedInput-notchedOutline": {
-                                  borderColor: "black",
-                                },
-                              },
-                              "& .MuiInputLabel-outlined": {
-                                color: "black",
-                              },
-                            }}
-                          />
-                          <div className="college-icon text-black absolute top-5 left-[320px]">
-                            {" "}
-                            <FaUniversity />
-                          </div>
-                        </div>
-                        {collegeName && (
-                          <div
-                            className="college-address"
-                            style={{ marginTop: "12px", marginBottom: "20px" }}
-                          >
-                            <TextField
-                              id="outlined-address"
-                              label="College Address"
-                              variant="outlined"
-                              value={address}
-                              onChange={(e) => setAddress(e.target.value)}
-                              placeholder="Enter address"
-                              sx={{
-                                "& .MuiOutlinedInput-root": {
-                                  color: "black",
-                                  width: "350px",
-                                  "& .MuiOutlinedInput-notchedOutline": {
-                                    borderColor: "black",
-                                  },
-                                },
-                                "& .MuiInputLabel-outlined": {
-                                  color: "black",
-                                },
-                              }}
-                            />
-                          </div>
-                        )}
-                        <div className="first-btn mt-5">
-                          <Button
-                            onClick={handleNext}
-                            variant="contained"
-                            style={{
-                              color: "white",
-                              backgroundColor: "black",
-                              borderRadius: 30,
-                            }}
-                            disabled={
-                              !collegeName ||
-                              !/^[A-Za-z\s]+$/.test(collegeName) ||
-                              !address
-                            }
-                          >
-                            <FaArrowRightLong
-                              style={{
-                                padding: "5px",
-                                color: "white",
-                                fontSize: "25px",
-                              }}
-                            />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    {step === 2 && (
-                      <div>
                         <div className="showcase-details w-full text-black">
                           <div className="intro-showcase-heading pt-5">
                             <h1 className="text-lg font-medium">
@@ -902,25 +822,6 @@ const Register = () => {
                         <div className="flex items-center justify-between">
                           <div className="">
                             <Button
-                              onClick={handleBack}
-                              variant="contained"
-                              style={{
-                                color: "white",
-                                backgroundColor: "black",
-                                borderRadius: 30,
-                              }}
-                            >
-                              <FaArrowLeftLong
-                                style={{
-                                  padding: "5px",
-                                  color: "white",
-                                  fontSize: "25px",
-                                }}
-                              />
-                            </Button>
-                          </div>
-                          <div className="">
-                            <Button
                               onClick={handleNext}
                               disabled={!selectedOption}
                               variant="contained"
@@ -942,10 +843,838 @@ const Register = () => {
                         </div>
                       </div>
                     )}
-                    {step === 3 && (
+                    {step === 2 && selectedOption === "admin" && (
+                      <div>
+                        <div>
+                          <div className="">
+                            <h1 className="text-black text-xl pb-5 font-medium">
+                              College Information?
+                            </h1>
+                          </div>
+                          <div className="college-name relative">
+                            <TextField
+                              id="outlined-basic"
+                              label="College Name"
+                              variant="outlined"
+                              value={collegeName}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (
+                                  /^[A-Za-z\s]+$/.test(value) ||
+                                  value === ""
+                                ) {
+                                  setCollegeName(value.trimStart()); // Prevents leading spaces
+                                }
+                              }}
+                              placeholder="Enter here"
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "350px",
+
+                                  "& .MuiOutlinedInput-notchedOutline": {
+                                    borderColor: "black",
+                                  },
+                                },
+                                "& .MuiInputLabel-outlined": {
+                                  color: "black",
+                                },
+                              }}
+                            />
+                            <div className="college-icon text-black absolute top-5 left-[320px]">
+                              {" "}
+                              <FaUniversity />
+                            </div>
+                          </div>
+                          {collegeName && (
+                            <div
+                              className="college-address"
+                              style={{
+                                marginTop: "12px",
+                                marginBottom: "20px",
+                              }}
+                            >
+                              <TextField
+                                id="outlined-address"
+                                label="College Address"
+                                variant="outlined"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="Enter address"
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    color: "black",
+                                    width: "350px",
+                                    "& .MuiOutlinedInput-notchedOutline": {
+                                      borderColor: "black",
+                                    },
+                                  },
+                                  "& .MuiInputLabel-outlined": {
+                                    color: "black",
+                                  },
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between mt-5">
+                            <div className="">
+                              <Button
+                                onClick={handleBack}
+                                variant="contained"
+                                style={{
+                                  color: "white",
+                                  backgroundColor: "black",
+                                  borderRadius: 30,
+                                }}
+                              >
+                                <FaArrowLeftLong
+                                  style={{
+                                    padding: "5px",
+                                    color: "white",
+                                    fontSize: "25px",
+                                  }}
+                                />
+                              </Button>
+                            </div>
+                            <Button
+                              onClick={handleNext}
+                              variant="contained"
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                              disabled={
+                                !collegeName ||
+                                !/^[A-Za-z\s]+$/.test(collegeName) ||
+                                !address
+                              }
+                            >
+                              <FaArrowRightLong
+                                style={{
+                                  padding: "5px",
+                                  color: "white",
+                                  fontSize: "25px",
+                                }}
+                              />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {step === 3 && selectedOption === "admin" && (
+                      <>
+                        <div>
+                          <div className="flex items-center flex-col justify-center space-y-3">
+                            <TextField
+                              id="outlined-basic"
+                              label="Name"
+                              variant="outlined"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isNameValid && name !== ""}
+                              helperText={
+                                !isNameValid && name !== ""
+                                  ? "Name cannot be empty"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Password"
+                              variant="outlined"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isPasswordValid && password !== ""}
+                              helperText={
+                                !isPasswordValid && password !== ""
+                                  ? "Password must be at least 6 characters"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Email"
+                              variant="outlined"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isEmailValid && email !== ""}
+                              helperText={
+                                !isEmailValid && email !== ""
+                                  ? "Enter a valid email"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Phone number"
+                              variant="outlined"
+                              value={phoneNumber}
+                              onChange={(e) => setPhoneNumber(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isPhoneNumberValid && phoneNumber !== ""}
+                              helperText={
+                                !isPhoneNumberValid && phoneNumber !== ""
+                                  ? "Phone number must be 10 digits"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-5">
+                          <div className="">
+                            <Button
+                              onClick={handleBack}
+                              variant="contained"
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                            >
+                              <FaArrowLeftLong
+                                style={{
+                                  padding: "5px",
+                                  color: "white",
+                                  fontSize: "25px",
+                                }}
+                              />
+                            </Button>
+                          </div>
+                          <div className="">
+                            <Button
+                              onClick={handleSubmit}
+                              variant="contained"
+                              disabled={
+                                selectedOption === "admin" &&
+                                (!name || !email || !phoneNumber || !password)
+                              }
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                            >
+                              Finish
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {step === 2 && selectedOption === "faulty" && (
+                      <div>
+                        <div>
+                          <div className="">
+                            <h1 className="text-black text-xl pb-5 font-medium">
+                              Select Your College
+                            </h1>
+                          </div>
+                          <div className="college-name relative">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button className="text-black">
+                                  Select College
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent>
+                                {colleges.map((college, index) => (
+                                  <DropdownMenuItem
+                                    key={index}
+                                    onClick={() =>
+                                      alert(`Selected: ${college}`)
+                                    }
+                                  >
+                                    {college}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <div className="college-icon text-black absolute top-5 left-[320px]">
+                              {" "}
+                              <FaUniversity />
+                            </div>
+                          </div>
+                          {collegeName && (
+                            <div
+                              className="college-address"
+                              style={{
+                                marginTop: "12px",
+                                marginBottom: "20px",
+                              }}
+                            >
+                              <TextField
+                                id="outlined-address"
+                                label="College Address"
+                                variant="outlined"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="Enter address"
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    color: "black",
+                                    width: "350px",
+                                    "& .MuiOutlinedInput-notchedOutline": {
+                                      borderColor: "black",
+                                    },
+                                  },
+                                  "& .MuiInputLabel-outlined": {
+                                    color: "black",
+                                  },
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between mt-5">
+                            <div className="">
+                              <Button
+                                onClick={handleBack}
+                                variant="contained"
+                                style={{
+                                  color: "white",
+                                  backgroundColor: "black",
+                                  borderRadius: 30,
+                                }}
+                              >
+                                <FaArrowLeftLong
+                                  style={{
+                                    padding: "5px",
+                                    color: "white",
+                                    fontSize: "25px",
+                                  }}
+                                />
+                              </Button>
+                            </div>
+                            <Button
+                              onClick={handleNext}
+                              variant="contained"
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                              disabled={
+                                !collegeName ||
+                                !/^[A-Za-z\s]+$/.test(collegeName) ||
+                                !address
+                              }
+                            >
+                              <FaArrowRightLong
+                                style={{
+                                  padding: "5px",
+                                  color: "white",
+                                  fontSize: "25px",
+                                }}
+                              />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {step === 3 && selectedOption === "faulty" && (
+                      <>
+                        <div>
+                          <div className="flex items-center flex-col justify-center space-y-3">
+                            <TextField
+                              id="outlined-basic"
+                              label="Name"
+                              variant="outlined"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isNameValid && name !== ""}
+                              helperText={
+                                !isNameValid && name !== ""
+                                  ? "Name cannot be empty"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Password"
+                              variant="outlined"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isPasswordValid && password !== ""}
+                              helperText={
+                                !isPasswordValid && password !== ""
+                                  ? "Password must be at least 6 characters"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Email"
+                              variant="outlined"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isEmailValid && email !== ""}
+                              helperText={
+                                !isEmailValid && email !== ""
+                                  ? "Enter a valid email"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Phone number"
+                              variant="outlined"
+                              value={phoneNumber}
+                              onChange={(e) => setPhoneNumber(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isPhoneNumberValid && phoneNumber !== ""}
+                              helperText={
+                                !isPhoneNumberValid && phoneNumber !== ""
+                                  ? "Phone number must be 10 digits"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-5">
+                          <div className="">
+                            <Button
+                              onClick={handleBack}
+                              variant="contained"
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                            >
+                              <FaArrowLeftLong
+                                style={{
+                                  padding: "5px",
+                                  color: "white",
+                                  fontSize: "25px",
+                                }}
+                              />
+                            </Button>
+                          </div>
+                          <div className="">
+                            <Button
+                              onClick={handleSubmit}
+                              variant="contained"
+                              disabled={
+                                selectedOption === "admin" &&
+                                (!name || !email || !phoneNumber || !password)
+                              }
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                            >
+                              Finish
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {step === 2 && selectedOption === "student" && (
+                      <div>
+                        <div>
+                          <div className="">
+                            <h1 className="text-black text-xl pb-5 font-medium">
+                              College Information?
+                            </h1>
+                          </div>
+                          <div className="college-name relative">
+                            <TextField
+                              id="outlined-basic"
+                              label="College Name"
+                              variant="outlined"
+                              value={collegeName}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (
+                                  /^[A-Za-z\s]+$/.test(value) ||
+                                  value === ""
+                                ) {
+                                  setCollegeName(value.trimStart()); // Prevents leading spaces
+                                }
+                              }}
+                              placeholder="Enter here"
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "350px",
+
+                                  "& .MuiOutlinedInput-notchedOutline": {
+                                    borderColor: "black",
+                                  },
+                                },
+                                "& .MuiInputLabel-outlined": {
+                                  color: "black",
+                                },
+                              }}
+                            />
+                            <div className="college-icon text-black absolute top-5 left-[320px]">
+                              {" "}
+                              <FaUniversity />
+                            </div>
+                          </div>
+                          {collegeName && (
+                            <div
+                              className="college-address"
+                              style={{
+                                marginTop: "12px",
+                                marginBottom: "20px",
+                              }}
+                            >
+                              <TextField
+                                id="outlined-address"
+                                label="College Address"
+                                variant="outlined"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="Enter address"
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    color: "black",
+                                    width: "350px",
+                                    "& .MuiOutlinedInput-notchedOutline": {
+                                      borderColor: "black",
+                                    },
+                                  },
+                                  "& .MuiInputLabel-outlined": {
+                                    color: "black",
+                                  },
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between mt-5">
+                            <div className="">
+                              <Button
+                                onClick={handleBack}
+                                variant="contained"
+                                style={{
+                                  color: "white",
+                                  backgroundColor: "black",
+                                  borderRadius: 30,
+                                }}
+                              >
+                                <FaArrowLeftLong
+                                  style={{
+                                    padding: "5px",
+                                    color: "white",
+                                    fontSize: "25px",
+                                  }}
+                                />
+                              </Button>
+                            </div>
+                            <Button
+                              onClick={handleNext}
+                              variant="contained"
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                              disabled={
+                                !collegeName ||
+                                !/^[A-Za-z\s]+$/.test(collegeName) ||
+                                !address
+                              }
+                            >
+                              <FaArrowRightLong
+                                style={{
+                                  padding: "5px",
+                                  color: "white",
+                                  fontSize: "25px",
+                                }}
+                              />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {step === 3 && selectedOption === "student" && (
+                      <>
+                        <div>
+                          <div className="flex items-center flex-col justify-center space-y-3">
+                            <TextField
+                              id="outlined-basic"
+                              label="Name"
+                              variant="outlined"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isNameValid && name !== ""}
+                              helperText={
+                                !isNameValid && name !== ""
+                                  ? "Name cannot be empty"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Password"
+                              variant="outlined"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isPasswordValid && password !== ""}
+                              helperText={
+                                !isPasswordValid && password !== ""
+                                  ? "Password must be at least 6 characters"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Email"
+                              variant="outlined"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isEmailValid && email !== ""}
+                              helperText={
+                                !isEmailValid && email !== ""
+                                  ? "Enter a valid email"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                            <TextField
+                              id="outlined-basic"
+                              label="Phone number"
+                              variant="outlined"
+                              value={phoneNumber}
+                              onChange={(e) => setPhoneNumber(e.target.value)}
+                              placeholder="Enter here"
+                              error={!isPhoneNumberValid && phoneNumber !== ""}
+                              helperText={
+                                !isPhoneNumberValid && phoneNumber !== ""
+                                  ? "Phone number must be 10 digits"
+                                  : ""
+                              }
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "400px",
+                                },
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-5">
+                          <div className="">
+                            <Button
+                              onClick={handleBack}
+                              variant="contained"
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                            >
+                              <FaArrowLeftLong
+                                style={{
+                                  padding: "5px",
+                                  color: "white",
+                                  fontSize: "25px",
+                                }}
+                              />
+                            </Button>
+                          </div>
+                          <div className="">
+                            <Button
+                              onClick={handleSubmit}
+                              variant="contained"
+                              disabled={
+                                selectedOption === "admin" &&
+                                (!name || !email || !phoneNumber || !password)
+                              }
+                              style={{
+                                color: "white",
+                                backgroundColor: "black",
+                                borderRadius: 30,
+                              }}
+                            >
+                              Finish
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* {step === 2 && selectedOption === "admin" && (
                       <div className="text-black">
                         {selectedOption === "admin" && (
                           <>
+                            {step === 1 && (
+                              <div>
+                                <div className="">
+                                  <h1 className="text-black text-xl pb-5 font-medium">
+                                    College Information?
+                                  </h1>
+                                </div>
+                                <div className="college-name relative">
+                                  <TextField
+                                    id="outlined-basic"
+                                    label="College Name"
+                                    variant="outlined"
+                                    value={collegeName}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (
+                                        /^[A-Za-z\s]+$/.test(value) ||
+                                        value === ""
+                                      ) {
+                                        setCollegeName(value.trimStart()); // Prevents leading spaces
+                                      }
+                                    }}
+                                    placeholder="Enter here"
+                                    sx={{
+                                      "& .MuiOutlinedInput-root": {
+                                        color: "black",
+                                        width: "350px",
+
+                                        "& .MuiOutlinedInput-notchedOutline": {
+                                          borderColor: "black",
+                                        },
+                                      },
+                                      "& .MuiInputLabel-outlined": {
+                                        color: "black",
+                                      },
+                                    }}
+                                  />
+                                  <div className="college-icon text-black absolute top-5 left-[320px]">
+                                    {" "}
+                                    <FaUniversity />
+                                  </div>
+                                </div>
+                                {collegeName && (
+                                  <div
+                                    className="college-address"
+                                    style={{
+                                      marginTop: "12px",
+                                      marginBottom: "20px",
+                                    }}
+                                  >
+                                    <TextField
+                                      id="outlined-address"
+                                      label="College Address"
+                                      variant="outlined"
+                                      value={address}
+                                      onChange={(e) =>
+                                        setAddress(e.target.value)
+                                      }
+                                      placeholder="Enter address"
+                                      sx={{
+                                        "& .MuiOutlinedInput-root": {
+                                          color: "black",
+                                          width: "350px",
+                                          "& .MuiOutlinedInput-notchedOutline":
+                                            {
+                                              borderColor: "black",
+                                            },
+                                        },
+                                        "& .MuiInputLabel-outlined": {
+                                          color: "black",
+                                        },
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                                <div className="first-btn mt-5">
+                                  <Button
+                                    onClick={handleNext}
+                                    variant="contained"
+                                    style={{
+                                      color: "white",
+                                      backgroundColor: "black",
+                                      borderRadius: 30,
+                                    }}
+                                    disabled={
+                                      !collegeName ||
+                                      !/^[A-Za-z\s]+$/.test(collegeName) ||
+                                      !address
+                                    }
+                                  >
+                                    <FaArrowRightLong
+                                      style={{
+                                        padding: "5px",
+                                        color: "white",
+                                        fontSize: "25px",
+                                      }}
+                                    />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                             <div className="flex items-center flex-col justify-center space-y-3">
                               <TextField
                                 id="outlined-basic"
@@ -1309,8 +2038,8 @@ const Register = () => {
                                 }}
                               />
                             </Button>
-                          </div>
-                          {/* <Button
+                          </div> */}
+                    {/* <Button
                             onClick={handleNext}
                             variant="contained"
                             style={{
@@ -1328,10 +2057,102 @@ const Register = () => {
                               }}
                             />
                           </Button> */}
+                    {/* </div>
+                      </div>
+                    )} */}
+                    {/* {step === 3 && (
+                      <div>
+                        <div className="">
+                          <h1 className="text-black text-xl pb-5 font-medium">
+                            College Information?
+                          </h1>
+                        </div>
+                        <div className="college-name relative">
+                          <TextField
+                            id="outlined-basic"
+                            label="College Name"
+                            variant="outlined"
+                            value={collegeName}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (/^[A-Za-z\s]+$/.test(value) || value === "") {
+                                setCollegeName(value.trimStart()); // Prevents leading spaces
+                              }
+                            }}
+                            placeholder="Enter here"
+                            sx={{
+                              "& .MuiOutlinedInput-root": {
+                                color: "black",
+                                width: "350px",
+
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  borderColor: "black",
+                                },
+                              },
+                              "& .MuiInputLabel-outlined": {
+                                color: "black",
+                              },
+                            }}
+                          />
+                          <div className="college-icon text-black absolute top-5 left-[320px]">
+                            {" "}
+                            <FaUniversity />
+                          </div>
+                        </div>
+                        {collegeName && (
+                          <div
+                            className="college-address"
+                            style={{ marginTop: "12px", marginBottom: "20px" }}
+                          >
+                            <TextField
+                              id="outlined-address"
+                              label="College Address"
+                              variant="outlined"
+                              value={address}
+                              onChange={(e) => setAddress(e.target.value)}
+                              placeholder="Enter address"
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  color: "black",
+                                  width: "350px",
+                                  "& .MuiOutlinedInput-notchedOutline": {
+                                    borderColor: "black",
+                                  },
+                                },
+                                "& .MuiInputLabel-outlined": {
+                                  color: "black",
+                                },
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="first-btn mt-5">
+                          <Button
+                            onClick={handleNext}
+                            variant="contained"
+                            style={{
+                              color: "white",
+                              backgroundColor: "black",
+                              borderRadius: 30,
+                            }}
+                            disabled={
+                              !collegeName ||
+                              !/^[A-Za-z\s]+$/.test(collegeName) ||
+                              !address
+                            }
+                          >
+                            <FaArrowRightLong
+                              style={{
+                                padding: "5px",
+                                color: "white",
+                                fontSize: "25px",
+                              }}
+                            />
+                          </Button>
                         </div>
                       </div>
-                    )}
-                    {step === 4 && (
+                    )} */}
+                    {/* {step === 4 && (
                       <div>
                         <div className="">
                           <h1 className="text-xl pb-5 font-medium text-black flex items-center gap-2">
@@ -1394,7 +2215,7 @@ const Register = () => {
                             </DialogTrigger>
 
                             {/* Modal Dialog */}
-                            <DialogContent className="max-w-5xl h-[600px]">
+                    {/* <DialogContent className="max-w-5xl h-[600px]">
                               <DialogHeader>
                                 <DialogTitle>
                                   <h1 className="text-xl pb-5 font-medium text-black flex items-center gap-2">
@@ -1410,10 +2231,10 @@ const Register = () => {
                                 <DialogDescription>
                                   Preview of the uploaded Excel file.
                                 </DialogDescription>
-                              </DialogHeader>
+                              </DialogHeader> */}
 
-                              {/* Table to Display Data */}
-                              <div className="overflow-x-auto scroll-container">
+                    {/* Table to Display Data */}
+                    {/* <div className="overflow-x-auto scroll-container">
                                 <table className="w-full border-collapse border border-gray-300">
                                   <thead>
                                     <tr className="bg-[#2168b7] text-white">
@@ -1500,9 +2321,9 @@ const Register = () => {
                             />
                           </Button>
                         </div>
-                      </div>
-                    )}
-                    {step === 5 && (
+                      </div> */}
+                    {/* )} */}
+                    {/* {step === 5 && (
                       <div>
                         <div className="">
                           <h1 className="text-xl pb-5 font-medium text-black flex items-center gap-2">
@@ -1565,7 +2386,7 @@ const Register = () => {
                             </DialogTrigger>
 
                             {/* Modal Dialog */}
-                            <DialogContent className="max-w-5xl h-[600px]">
+                    {/* <DialogContent className="max-w-5xl h-[600px]">
                               <DialogHeader>
                                 <DialogTitle>
                                   <h1 className="text-xl pb-5 font-medium text-black flex items-center gap-2">
@@ -1584,8 +2405,8 @@ const Register = () => {
                               </DialogHeader>
 
                               {/* Table to Display Data */}
-                              <div className="overflow-x-auto scroll-container">
-                                <table className="w-full border-collapse border border-gray-300">
+                    {/* <div className="overflow-x-auto scroll-container"> */}
+                    {/* <table className="w-full border-collapse border border-gray-300">
                                   <thead>
                                     <tr className="bg-[#b72171] text-white">
                                       {fileData.length > 0 &&
@@ -1669,13 +2490,13 @@ const Register = () => {
                                 backgroundColor: "black",
                                 borderRadius: 30,
                               }}
-                            >
-                              Finish
+                            > */}
+                    {/* Finish
                             </Button>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      </div> */}
+                    {/* )}  */}
                     {isDialogOpen && (
                       <div className="blank">
                         <div className="show-popup">
@@ -1700,11 +2521,9 @@ const Register = () => {
                     )}
                     <div className="progress-dots">
                       {progressDots.map((dot) => (
-                        <motion.span
+                        <span
                           key={dot}
                           className={`dot ${step === dot ? "active" : ""}`}
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: step === dot ? 1.2 : 1 }}
                         />
                       ))}
                     </div>
@@ -1797,14 +2616,14 @@ const Register = () => {
                     </div>
                   )}
                 </div>
-                {step === 4 && (
+                {/* {step === 4 && (
                   <img
                     className="w-full h-auto"
                     src={excelImage}
                     alt="Description of the image"
                   />
-                )}
-                <div className="bg-[#dce7fe] rounded-b-3xl">
+                )} */}
+                {/* <div className="bg-[#dce7fe] rounded-b-3xl">
                   {step === 4 && (
                     <div className="text-gray-500 py-5 px-5">
                       <h1 className="text-[#3c3c3c] text-md">
@@ -1820,15 +2639,15 @@ const Register = () => {
                       </h1>
                     </div>
                   )}
-                </div>
-                {step === 5 && (
+                </div> */}
+                {/* {step === 5 && (
                   <img
                     className="w-full h-auto"
                     src={excelImage2}
                     alt="Description of the image"
                   />
-                )}
-                <div className="bg-[#dce7fe] rounded-b-3xl">
+                )} */}
+                {/* <div className="bg-[#dce7fe] rounded-b-3xl">
                   {step === 5 && (
                     <div className="text-gray-500 py-5 px-5">
                       <h1 className="text-[#3c3c3c] text-md">
@@ -1844,7 +2663,7 @@ const Register = () => {
                       </h1>
                     </div>
                   )}
-                </div>
+                </div> */}
               </motion.div>
             </div>
           </div>

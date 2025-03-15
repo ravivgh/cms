@@ -12,7 +12,7 @@ const MainStudentList = () => {
       <div className="flex">
         <Sidebar isSidebarOpen={isSidebarOpen} onToggle={handleSidebarToggle} />
         <main
-          className={`p-4 transition-all duration-500 ${
+          className={`transition-all duration-500 ${
             isSidebarOpen ? "ml-[12.5rem]" : "ml-[5rem]"
           }`}
           style={{

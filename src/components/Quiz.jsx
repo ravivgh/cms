@@ -10,6 +10,22 @@ import { IoIosClose } from "react-icons/io";
 import { IoMdArrowRoundUp } from "react-icons/io";
 import quizCard from "../assets/quiz.png";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { Users, Book, Plus } from "lucide-react";
+import { Input } from "./ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 import Tooltip from "@mui/material/Tooltip";
 import {
   Popover,
@@ -166,7 +182,114 @@ const ScratchCard = ({ ans }) => {
     </div>
   );
 };
+// CoinSelector Component
+const CoinSelector = ({ onSelectCoin }) => {
+  const [selectedPointCoin, setSelectedPointCoin] = useState(null);
+  const [inputValueCoin, setInputValueCoin] = useState("");
+  const [dropdownItems, setDropdownItems] = useState([50, 100]);
+  const [showInputCoin, setShowInputCoin] = useState(false);
 
+  const handleSelectItemCoin = (item) => {
+    setSelectedPointCoin(item);
+    onSelectCoin(item); // Pass selected coin to parent
+  };
+
+  const handleAddItemCoin = (e) => {
+    e.stopPropagation(); // Prevent dropdown from closing
+    const number = parseInt(inputValueCoin, 10);
+    if (!isNaN(number) && number > 0 && !dropdownItems.includes(number)) {
+      setDropdownItems((prev) => [...prev, number].sort((a, b) => a - b));
+      setInputValueCoin("");
+      setShowInputCoin(false);
+    } else {
+      alert("Please enter a valid, unique positive number.");
+    }
+  };
+  return (
+    <div className="flex items-center bg-slate-100 rounded-full px-2 py-1">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            style={{
+              color: "black",
+              textTransform: "none",
+            }}
+          >
+            {selectedPointCoin ? (
+              <span className="flex items-center">
+                {selectedPointCoin}{" "}
+                <RiCopperCoinFill className="text-yellow-500 ml-1" />
+              </span>
+            ) : (
+              "Select Coin"
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 rounded-xl">
+          {dropdownItems.map((item, index) => (
+            <DropdownMenuItem
+              key={index}
+              className="flex items-center"
+              onClick={() => handleSelectItemCoin(item)}
+            >
+              <RiCopperCoinFill className="text-yellow-500 mr-2" />
+              {item}
+            </DropdownMenuItem>
+          ))}
+          <div className="p-2">
+            {!showInputCoin ? (
+              <Button
+                variant="ghost"
+                onClick={() => setShowInputCoin(true)}
+                className="flex items-center justify-center"
+                style={{
+                  backgroundColor: "#0056d2",
+                  color: "white",
+                  borderRadius: "100px",
+                  textTransform: "none",
+                }}
+              >
+                <Plus className="mr-2 w-4 h-4" /> Add New
+              </Button>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Input
+                  placeholder="Enter coin value"
+                  value={inputValueCoin}
+                  onChange={(e) => setInputValueCoin(e.target.value)}
+                  className="mb-2"
+                />
+                <Button
+                  onClick={handleAddItemCoin}
+                  className="w-full"
+                  style={{
+                    backgroundColor: "#0056d2",
+                    color: "white",
+                    borderRadius: "100px",
+                    textTransform: "none",
+                  }}
+                >
+                  Add
+                </Button>
+              </motion.div>
+            )}
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {selectedPointCoin && (
+        <span className="ml-2 flex items-center">
+          {/* <RiCopperCoinFill className="text-orange-300" /> */}
+          <p className="pl-1">coin{selectedPointCoin !== 1 ? "s" : ""}</p>
+        </span>
+      )}
+    </div>
+  );
+};
 const Assistant = () => {
   const [inputValue, setInputValue] = useState("");
   const [file, setFile] = useState("");
@@ -213,7 +336,38 @@ const Assistant = () => {
     setInputValue(value);
     setRequestMessage(value);
   };
-
+  // JSON data
+  const jsonData = {
+    classes: [
+      {
+        name: "FYBCA",
+        sections: [
+          {
+            name: "A",
+            subjects: ["English", "Physics", "Geography", "Math", "Science"],
+          },
+          { name: "B", subjects: ["English", "Physics", "Geography"] },
+          { name: "C", subjects: ["English", "Physics", "Geography"] },
+        ],
+      },
+      {
+        name: "SYBCA",
+        sections: [
+          { name: "A", subjects: ["English", "Physics", "Geography"] },
+          { name: "B", subjects: ["English", "Physics", "Geography"] },
+          { name: "C", subjects: ["English", "Physics", "Geography"] },
+        ],
+      },
+      {
+        name: "TYBCA",
+        sections: [
+          { name: "A", subjects: ["English", "Physics", "Geography"] },
+          { name: "B", subjects: ["English", "Physics", "Geography"] },
+          { name: "C", subjects: ["English", "Physics", "Geography"] },
+        ],
+      },
+    ],
+  };
   const circleVariants = {
     animate: {
       y: [0, 20, 0],
@@ -260,7 +414,9 @@ const Assistant = () => {
 
     // Add more questions as needed
   ];
-
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSection, setSelectedSection] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
   const handleSend = (e) => {
     e.preventDefault();
     if (requestMessage.trim() || fileName) {
@@ -270,9 +426,15 @@ const Assistant = () => {
           request: requestMessage,
           response: "",
           file: fileName,
+          class: selectedClass,
+          section: selectedSection,
+          subject: selectedSubject,
         },
       ]);
       setIsLoading(true);
+      // setSelectedClass("");
+      // setSelectedSection("");
+      // setSelectedSubject("");
       setTimeout(() => {
         let responseMessage = "";
 
@@ -283,18 +445,18 @@ const Assistant = () => {
         ) {
           responseMessage = (
             <>
-              <p className="py-3 text-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-300  font-thin animate-gradient bg-[length:200%_200%] ">
-                Import Excel Successfully
-              </p>
-
               {quizData.map((item) => (
                 <Card className="my-4" key={item.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="">Question {item.id}</div>
+
                       <div className="flex items-center bg-slate-100 rounded-full px-2 py-1">
-                        <RiCopperCoinFill className="text-orange-300" />
-                        <p className="pl-1">coin</p>
+                        <CoinSelector
+                          onSelectCoin={(coin) =>
+                            console.log("Selected coin:", coin)
+                          }
+                        />
                       </div>
                     </div>
                     <CardDescription>{item.question}</CardDescription>
@@ -541,7 +703,71 @@ const Assistant = () => {
                     {/* <label htmlFor="comment" className=" text-gray-400">
                       Prompt
                     </label> */}
-
+                    <div className="w-48">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button className="mt-2 w-full   rounded-full border border-gray-400 hover:text-white bg-black text-white">
+                            Select Class
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                          <DropdownMenuLabel>Classes</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {jsonData.classes.map((classItem, classIndex) => (
+                            <DropdownMenuSub key={classIndex}>
+                              <DropdownMenuSubTrigger>
+                                <Users className="mr-2 h-4 w-4" />
+                                <span>{classItem.name}</span>
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuPortal>
+                                <DropdownMenuSubContent>
+                                  {classItem.sections.map(
+                                    (section, sectionIndex) => (
+                                      <DropdownMenuSub key={sectionIndex}>
+                                        <DropdownMenuSubTrigger>
+                                          <Plus className="mr-2 h-4 w-4" />
+                                          <span>Section {section.name}</span>
+                                        </DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                          <DropdownMenuSubContent>
+                                            {section.subjects.map(
+                                              (subject, subjectIndex) => (
+                                                <DropdownMenuItem
+                                                  key={subjectIndex}
+                                                  onSelect={() => {
+                                                    setSelectedClass(
+                                                      classItem.name
+                                                    );
+                                                    setSelectedSection(
+                                                      section.name
+                                                    );
+                                                    setSelectedSubject(subject);
+                                                  }}
+                                                >
+                                                  <Book className="mr-2 h-4 w-4" />
+                                                  <span>{subject}</span>
+                                                </DropdownMenuItem>
+                                              )
+                                            )}
+                                          </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                      </DropdownMenuSub>
+                                    )
+                                  )}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="my-2">
+                      {selectedClass && selectedSection && selectedSubject && (
+                        <p className="text-gray-500 text-xs">
+                          {`Selected Class: ${selectedClass} | Section: ${selectedSection} | Subject: ${selectedSubject}`}
+                        </p>
+                      )}
+                    </div>
                     <div className="bg-[#efefef] rounded-lg pt-2">
                       {fileName && (
                         <div className="file-info flex items-center bg-[#ffffff] px-3 py-2 w-fit my-2 rounded-md">

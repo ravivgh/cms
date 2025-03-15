@@ -7,8 +7,14 @@ import { VscVerifiedFilled } from "react-icons/vsc";
 import { TbReport } from "react-icons/tb";
 import { Button } from "./ui/button";
 import Chart from "./Chart";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 const StudentDashboard = ({ selectedMonth, onDownload, reportRef }) => {
+  const navigate = useNavigate();
+  const handleClick = () => {
+    navigate("/attendancemark");
+  };
+
   return (
     <>
       {" "}
@@ -26,6 +32,12 @@ const StudentDashboard = ({ selectedMonth, onDownload, reportRef }) => {
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl text-black font-medium">Dashboard</h2>
                   <div className="flex items-center gap-3">
+                    <Button
+                      className="bg-[#8c9cb8] hover:bg-[#8c9cb8] text-white font-medium rounded-full text-[13px] gap-1 h-9 px-4 transition-all duration-300  "
+                      onClick={handleClick}
+                    >
+                      Attendance Mark
+                    </Button>
                     <Button
                       className="bg-[#4f71ab] hover:bg-[#3b5998] text-white font-medium rounded-full text-[13px] gap-1 h-9 px-4 transition-all duration-300  "
                       onClick={onDownload}

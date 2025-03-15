@@ -898,7 +898,7 @@ const HomePage = () => {
           </div>
         </nav>
 
-        <div className="mt-60 flex justify-around items-center">
+        <div className="mt-60 flex justify-around items-center flex-wrap">
           <div className="">
             <div className="w-fit pb-7 flex items-center gap-2">
               <div className="">
@@ -926,7 +926,7 @@ const HomePage = () => {
               </div>
             </div>
           </div>
-          <div className="">
+          <div className="sm:mt-10 md:mt-10">
             <img
               src="https://cdn.prod.website-files.com/608e9cc36cbcc089f0998643/6790a3a7b431b1439b15ca8a_unsplash_Kz8nHVg_tGI.png"
               alt=""

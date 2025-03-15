@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import logo from "../assets/logo.png";
 
-const StudentLogin = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
+const FaceScan = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
   const videoRef = useRef(null);
   const [bgColor, setBgColor] = useState("#181818");
   const [faceDetected, setFaceDetected] = useState(false);
   const [showGreenBorder, setShowGreenBorder] = useState(false);
   const [showTeeth, setShowTeeth] = useState(true);
+  const [attendanceMarked, setAttendanceMarked] = useState(false); // State for successful attendance
+  const [faceScanFailed, setFaceScanFailed] = useState(false); // State for failed face scan
+
+  // Simulate face detection logic (random success/failure for demo purposes)
+  const simulateFaceDetection = () => {
+    // Randomly succeed (80% chance) or fail (20% chance)
+    return Math.random() > 0.2; // Adjust this probability as needed
+  };
 
   useEffect(() => {
     // Start the camera feed on component load
@@ -19,31 +27,59 @@ const StudentLogin = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
       })
       .catch((err) => {
         console.error("Camera error:", err);
+        setFaceScanFailed(true); // If camera access fails, mark as failed
       });
 
-    // Change background color to green after 3 seconds and simulate face detection
+    // Simulate face detection after 3 seconds
     const timer = setTimeout(() => {
-      setBgColor("green");
-      setFaceDetected(true);
+      const detectionSuccess = simulateFaceDetection();
+      if (detectionSuccess) {
+        setBgColor("green");
+        setFaceDetected(true);
+      } else {
+        setFaceScanFailed(true);
+        // Stop the camera feed on failure
+        const stream = videoRef.current?.srcObject;
+        if (stream) {
+          const tracks = stream.getTracks();
+          tracks.forEach((track) => track.stop());
+        }
+      }
     }, 3000);
 
-    // Set a timer to hide teeth and show green border after 5 seconds
+    // If face detection succeeds, proceed with showing green border after 5 seconds
     const borderTimer = setTimeout(() => {
-      setShowTeeth(false); // Hide the teeth
-      setShowGreenBorder(true); // Show the green border
+      if (faceDetected && !faceScanFailed) {
+        setShowTeeth(false); // Hide the teeth
+        setShowGreenBorder(true); // Show the green border
+      }
     }, 5000);
 
-    // Cleanup camera stream on component unmount
+    // If face detection succeeds, show attendance success message after 10 seconds
+    const attendanceTimer = setTimeout(() => {
+      if (faceDetected && !faceScanFailed) {
+        setAttendanceMarked(true); // Show the success message
+        // Stop the camera feed
+        const stream = videoRef.current?.srcObject;
+        if (stream) {
+          const tracks = stream.getTracks();
+          tracks.forEach((track) => track.stop());
+        }
+      }
+    }, 10000);
+
+    // Cleanup camera stream and timers on component unmount
     return () => {
       clearTimeout(timer);
       clearTimeout(borderTimer);
+      clearTimeout(attendanceTimer);
       const stream = videoRef.current?.srcObject;
       if (stream) {
         const tracks = stream.getTracks();
         tracks.forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [faceDetected, faceScanFailed]);
 
   const [progress, setProgress] = useState(0);
   const [teethHighlighted, setTeethHighlighted] = useState(0);
@@ -87,7 +123,7 @@ const StudentLogin = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
       setProgress(newProgress);
       setTeethHighlighted(Math.round(newProgress * numberOfTeeth));
 
-      if (newProgress < 1) {
+      if (newProgress < 1 && !faceScanFailed && !attendanceMarked) {
         requestAnimationFrame(updateProgress);
       }
     };
@@ -95,10 +131,85 @@ const StudentLogin = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
     requestAnimationFrame(updateProgress);
 
     return () => {
-      clearTimeout();
+      // Clear any pending animation frames
     };
-  }, [animationDuration, numberOfTeeth]);
+  }, [animationDuration, numberOfTeeth, faceScanFailed, attendanceMarked]);
 
+  // Handle "Scan Again" button click
+  const handleScanAgain = () => {
+    setFaceScanFailed(false);
+    setFaceDetected(false);
+    setShowGreenBorder(false);
+    setShowTeeth(true);
+    setBgColor("#181818");
+    setProgress(0);
+    setTeethHighlighted(0);
+
+    // Restart the camera feed
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch((err) => {
+        console.error("Camera error:", err);
+        setFaceScanFailed(true);
+      });
+  };
+
+  // If attendance is marked successfully, show the success message
+  if (attendanceMarked) {
+    return (
+      <div className="bg-[#1a1919] w-full h-screen flex items-center justify-center">
+        <div className="text-center text-white space-y-6">
+          <img
+            src={logo}
+            alt="Logo"
+            className="mix-blend-screen w-36 mx-auto"
+          />
+          <h1 className="text-4xl font-semibold text-green-500">
+            Attendance Marked Successfully!
+          </h1>
+          <p className="text-gray-400">
+            Your attendance has been recorded. You can now proceed with your
+            meeting.
+          </p>
+          {/* No "Scan Again" button here as per requirements */}
+        </div>
+      </div>
+    );
+  }
+
+  // If face scan fails, show the failure message with "Scan Again" button
+  if (faceScanFailed) {
+    return (
+      <div className="bg-[#1a1919] w-full h-screen flex items-center justify-center">
+        <div className="text-center text-white space-y-6">
+          <img
+            src={logo}
+            alt="Logo"
+            className="mix-blend-screen w-36 mx-auto"
+          />
+          <h1 className="text-4xl font-semibold text-red-500">
+            Face Not Scanned!
+          </h1>
+          <p className="text-gray-400">
+            We couldn't detect your face. Please try again.
+          </p>
+          <button
+            onClick={handleScanAgain}
+            className="mt-4 px-6 py-2 bg-[#116752] text-white rounded-full hover:bg-green-700 transition-colors"
+          >
+            Scan Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Otherwise, show the scanning UI
   return (
     <div className="bg-[#1a1919] w-full h-screen flex items-center justify-center">
       <div className="flex items-center justify-center gap-14 mx-auto relative">
@@ -137,7 +248,7 @@ const StudentLogin = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
           )}
 
           {/* Avatar with Camera Feed */}
-          <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden  z-10">
+          <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden z-10">
             <video
               ref={videoRef}
               autoPlay
@@ -169,7 +280,7 @@ const StudentLogin = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
             <div>
               <div className="flex items-center text-white gap-2">
                 <span>Hey</span>
-                <h1 className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-purple-300  animate-gradient bg-[length:200%_200%] font-medium">
+                <h1 className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-purple-300 animate-gradient bg-[length:200%_200%] font-medium">
                   Sara Smith <span className="text-gray-400">,</span>
                 </h1>
               </div>
@@ -207,4 +318,4 @@ const StudentLogin = ({ numberOfTeeth = 120, animationDuration = 5000 }) => {
   );
 };
 
-export default StudentLogin;
+export default FaceScan;

@@ -374,7 +374,7 @@ function Attendances() {
                     </div>
                     <div
                       className="group bg-[#282828] p-5 rounded-lg border-gray-500 border relative transition-all duration-300"
-                      onClick={() => navigate("/attendance/viewall")}
+                      onClick={() => navigate("/attendance/viewall/all")}
                     >
                       <p className="text-gray-200 text-xs">Question Bank</p>
                       <div className="flex items-center justify-between pt-3">

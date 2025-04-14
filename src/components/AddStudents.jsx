@@ -145,12 +145,20 @@ const AdvancedStudentManagement = () => {
       Email: email,
       address: address,
       Mobile: mobile,
+      college: localStorage.getItem("college_id"),
       avatar: "https://example.com/default-avatar.jpg", 
     };
 
     try {
-      const response = await axios.post('http://localhost:5472/services/addstudent', {
-        studentdata: [newStudent],
+      const response = await axios.post('http://localhost:5472/services/insertstudent', {
+        Student_Name : name,
+        Class: className,
+        DOB: dob,
+        Email: email,
+        Mobile: mobile,
+        address : address,
+        Section : SectionName,
+        college: localStorage.getItem("college_id"),
         collecname: "Student_Master",
       });
 
@@ -165,6 +173,8 @@ const AdvancedStudentManagement = () => {
         setEmail("");
         setDob("");
         setErrors({ name: "", className: "", mobile: "", email: "" });
+        selectAll()
+        
       }
     } catch (error) {
       console.error('Error adding students:', error);
@@ -174,7 +184,7 @@ const AdvancedStudentManagement = () => {
   const selectAll = async () => {
     try {
       let response;
-      if (!localStorage.getItem("staff_id")) {
+      if (localStorage.getItem("admin_id")) {
         response = await axios.post("http://localhost:5472/services/retrievestudentsadmin");
       } else {
         response = await axios.post("http://localhost:5472/services/retrievestudents", {
@@ -190,7 +200,7 @@ const AdvancedStudentManagement = () => {
         email: student.Email,
         mobile: student.Mobile,
         section: student.Section,
-        address: student.address,
+        address: student.Address,
         avatar:  student._id 
           ? `http://localhost:5472/profilepics/${student._id}.png`
           : "https://example.com/default-avatar.jpg",
@@ -673,7 +683,6 @@ const AdvancedStudentManagement = () => {
                       <TextField
                         label="Name"
                         variant="outlined"
-                        value={name}
                         onChange={(e) => {
                           setName(e.target.value);
                           setErrors((prev) => ({ ...prev, name: "" }));
@@ -686,7 +695,6 @@ const AdvancedStudentManagement = () => {
                       <TextField
                         label="Class"
                         variant="outlined"
-                        value={className}
                         onChange={(e) => {
                           setClassName(e.target.value);
                           setErrors((prev) => ({ ...prev, className: "" }));
@@ -699,7 +707,6 @@ const AdvancedStudentManagement = () => {
                       <TextField
                         label="Section"
                         variant="outlined"
-                        value={SectionName}
                         onChange={(e) => {
                           setSectionName(e.target.value);
                           setErrors((prev) => ({ ...prev, SectionName: "" }));
@@ -712,7 +719,6 @@ const AdvancedStudentManagement = () => {
                       <TextField
                         label="Date of Birth"
                         variant="outlined"
-                        value={dob}
                         onChange={(e) => setDob(e.target.value)}
                         type="date"
                         sx={textFieldStyles}
@@ -720,7 +726,6 @@ const AdvancedStudentManagement = () => {
                       <TextField
                         label="Address"
                         variant="outlined"
-                        value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         multiline
                         rows={2}
@@ -729,7 +734,6 @@ const AdvancedStudentManagement = () => {
                       <TextField
                         label="Mobile"
                         variant="outlined"
-                        value={mobile}
                         onChange={(e) => {
                           setMobile(e.target.value);
                           setErrors((prev) => ({ ...prev, mobile: "" }));
@@ -743,7 +747,6 @@ const AdvancedStudentManagement = () => {
                         label="Email"
                         variant="outlined"
                         type="email"
-                        value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
                           setErrors((prev) => ({ ...prev, email: "" }));

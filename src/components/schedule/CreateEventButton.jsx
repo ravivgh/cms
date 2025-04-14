@@ -37,7 +37,7 @@ export default function CreateEventButton() {
         <MdArrowDropDown />
       </button>
       <Menu anchorEl={anchorEl} open={open} onClose={() => setAnchorEl(null)}>
-        {["Subject Schedule", "Appointment", "Holiday"].map((item) => (
+        {["Subject Schedule", "Holiday"].map((item) => (
           <MenuItem key={item} onClick={() => handleClose(item)}>
             {item}
           </MenuItem>

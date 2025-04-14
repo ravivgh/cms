@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import moment from "moment";
 import AttendanceGrid from "../components/AttendanceGrid";
-import MonthSelection from "../components/MonthSelection";
+import MonthSelectionforAtten from "./MonthSelectionforAtten";
 import { Button } from "@/components/ui/button";
 import { FaArrowLeftLong } from "react-icons/fa6";
 import { MdArrowOutward } from "react-icons/md";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PiSealCheckFill } from "react-icons/pi";
 import { MdOutlineEmail } from "react-icons/md";
-
+import { setMonth, getMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { FaArrowRightLong } from "react-icons/fa6";
 import { CiMobile4 } from "react-icons/ci";
@@ -18,104 +19,174 @@ import { ArrowRight, Search } from "lucide-react";
 import { TbMedal } from "react-icons/tb";
 import { TbReport } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
-
+import axios from "axios";
 import { FcCalendar } from "react-icons/fc";
 import { GraduationCap, TrendingDown, TrendingUp } from "lucide-react";
+
 function Attendances() {
   const navigate = useNavigate();
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [displayMonth, setDisplayMonth] = useState(selectedMonth);
-  const [displayDate, setDisplayDate] = useState(selectedDate);
+  const [displayMonth, setDisplayMonth] = useState(
+    setMonth(new Date(), new Date().getMonth())
+  );
+  const [displayDate, setDisplayDate] = useState(new Date());
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  // useEffect(() => {
-  //   const storedSubjects = JSON.parse(localStorage.getItem("subjects")) || [];
-  //   setSubjects(storedSubjects);
-  // }, []);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const formattedDate = moment(new Date()).format("DD MMM YYYY"); // Added YYYY for clarity
+  const [dashboardCounts, setDashboardCounts] = useState({
+    students: 0,
+    present: 0,
+    absent: 0,
+  });
+
+  const placeholders = ["Subject", "Name", "Class"];
+
+  const getStaffDetailsForAdminAttendance = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/getstaffdetailsforadminatte"
+      );
+
+      if (response.status === 200) {
+        return response.data.values;
+      } else if (response.status === 404) {
+        throw new Error(response.data.message || "Record not found");
+      } else {
+        throw new Error(response.data.message || "Unknown error");
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          throw new Error(error.response.data.message || "Server error");
+        } else {
+          throw new Error("Network error. Please try again.");
+        }
+      } else {
+        throw error;
+      }
+    }
+  };
+
+  const fetchStaffDashboardCounts = async (month, staffId) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/getstafdashcount",
+        {
+          month: month,
+          staff_id: staffId,
+        }
+      );
+      if (response.status === 200) {
+        setDashboardCounts({
+          students: response.data.students || 0,
+          present: response.data.present || 0,
+          absent: response.data.absent || 0,
+        });
+      } else {
+        console.error("Failed to fetch dashboard counts");
+        setDashboardCounts({ students: 0, present: 0, absent: 0 });
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard counts:", error);
+      setDashboardCounts({ students: 0, present: 0, absent: 0 });
+    }
+  };
+
   useEffect(() => {
-    const storedSubjects = [
-      {
-        name: "Rahul Shah",
-        avatar:
-          "https://dersyb7nfifdf.cloudfront.net/production/interviewer-profile-pictures/0f6fee60-187e-44ed-8ccf-e0bc3b56eeac.jpg",
-        assignedClass: "TYBCA",
-        phoneNumber: "9879185312",
-        email: "rahulshah@gmail.com",
-        subject: "Computer Science",
-      },
-      {
-        name: "Sara Smith",
-        avatar:
-          "https://dersyb7nfifdf.cloudfront.net/production/interviewer-profile-pictures/68935ce6-16ff-437f-bc4a-5f85c7e238fe.jpg",
-        assignedClass: "TYBCA",
-        phoneNumber: "9879185312",
-        email: "ssmith@gmail.com",
-        subject: "Java",
-      },
-      {
-        name: "John Doe",
-        avatar:
-          "https://dersyb7nfifdf.cloudfront.net/production/interviewer-profile-pictures/bb34b3a9-006d-4b7e-b885-8cd040cd60b5.jpg",
-        assignedClass: "FYBCA",
-        phoneNumber: "9879185312",
-        email: "john@gmail.com",
-        subject: "Linux",
-      },
-      {
-        name: "Sara Smith",
-        avatar:
-          "https://dersyb7nfifdf.cloudfront.net/production/interviewer-profile-pictures/a7e93f4c-d40c-4598-9728-cf71c93a1ee6.jpg",
-        assignedClass: "TYBCA",
-        phoneNumber: "9879185312",
-        email: "ssmith@gmail.com",
-        subject: "Cloud Computing",
-      },
-    ];
-    localStorage.setItem("subjects", JSON.stringify(storedSubjects));
-    setSubjects(storedSubjects);
+    const fetchStaffDetails = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await getStaffDetailsForAdminAttendance();
+        setSubjects(response);
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response) {
+          setError(err.response.data.message || "Server Error");
+        } else {
+          setError("Network Error");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStaffDetails();
   }, []);
+  console.log(selectedSubject);
+  const dataToPass = selectedSubject
+    ? {
+        class: selectedSubject.assignedClass,
+        section: selectedSubject.section,
+        subject: selectedSubject.subject,
+      }
+    : null;
+  console.log(dataToPass);
+  const handleNavigate = () => {
+    if (dataToPass) {
+      navigate("/attendance/viewall/all", { state: dataToPass });
+    } else {
+      console.warn("No subject selected to navigate to view all attendance.");
+      // Optionally show a message to the user
+    }
+  };
+  useEffect(() => {
+    if (selectedSubject) {
+      fetchStaffDashboardCounts(selectedMonth, selectedSubject._id);
+    } else {
+      setDashboardCounts({ students: 0, present: 0, absent: 0 });
+    }
+  }, [selectedMonth, selectedSubject]);
 
   const handleSearch = () => {
-    setDisplayMonth(selectedMonth);
+    setDisplayMonth(setMonth(new Date(), selectedMonth - 1));
     setDisplayDate(selectedDate);
   };
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value.toLowerCase());
   };
 
   const filteredSubjects = subjects.filter(
     (subject) =>
-      subject.name.toLowerCase().includes(searchQuery) ||
-      subject.assignedClass.toLowerCase().includes(searchQuery) ||
-      subject.subject.toLowerCase().includes(searchQuery)
+      (subject.name && subject.name.toLowerCase().includes(searchQuery)) ||
+      (subject.assignedClass &&
+        subject.assignedClass.toLowerCase().includes(searchQuery)) ||
+      (subject.subject && subject.subject.toLowerCase().includes(searchQuery))
   );
+
   const handleBack = () => {
     setSelectedSubject(null);
   };
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-
-  // Placeholder options to cycle through
-  const placeholders = ["Subject", "Name", "Class"];
 
   useEffect(() => {
     // Set up interval to update the placeholder index
     const intervalId = setInterval(() => {
-      setPlaceholderIndex((prevIndex) => (prevIndex + 1) % placeholders.length);
+      setPlaceholderIndex(
+        (prevIndex) => (prevIndex + 1) % placeholders.length
+      );
     }, 2000); // Change placeholder every 2 seconds
 
     // Cleanup the interval on component unmount
     return () => clearInterval(intervalId);
   }, [placeholders.length]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Basic loading indicator
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>; // Basic error display
+  }
+
   return (
     <div className="">
       {!selectedSubject ? (
-        <motion.div
-        // initial={{ opacity: 0 }}
-        // animate={{ opacity: 1 }}
-        // exit={{ opacity: 0 }}
-        >
+        <motion.div>
           <div className="text-black text-2xl">
             <h1 className="font-medium">Attendance Sheet</h1>
           </div>
@@ -152,22 +223,24 @@ function Attendances() {
                 <motion.div
                   key={index}
                   whileHover={{ scale: 1.05 }}
-                  // whileTap={{ scale: 0.95 }}
-                  // onClick={() => setSelectedSubject(subject)}
+                  onClick={() =>
+                    setSelectedSubject({ ...subject, staffId: subject._id })
+                  }
                 >
                   <Card className="bg-[#f7f7f7]  rounded-lg shadow-lg cursor-pointer">
                     <div
                       className="bg-[#2b2b2b] w-full h-20 rounded-t-lg bg-cover"
-                      // style={{
-                      //   backgroundImage:
-                      //     "url(https://d2b1cooxpkirg1.cloudfront.net/publicAssets/homepage/solutions/bg-1.png)",
-                      // }}
                     ></div>
                     <CardContent className="relative bottom-12">
                       <div className="float-end">
                         <span
                           className="bg-[#6f7478] p-2 rounded-full text-[#fff] flex items-center gap-2 text-xs border border-[#3b3c3f]"
-                          onClick={() => setSelectedSubject(subject)}
+                          onClick={() =>
+                            setSelectedSubject({
+                              ...subject,
+                              staffId: subject._id,
+                            })
+                          }
                         >
                           View Sheet{" "}
                           <FaArrowRightLong className="text-[#fff]" />
@@ -181,7 +254,7 @@ function Attendances() {
                             className="rounded-lg"
                           />
                           <AvatarFallback>
-                            {subject.name.charAt(0)}
+                            {subject.name?.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <h1 className="font-medium flex items-center gap-1">
@@ -191,16 +264,16 @@ function Attendances() {
                         <div className=" items-center flex gap-5">
                           <p>Assigned Class</p>
                           <span className="font-medium">
-                            {subject.assignedClass}
+                            {subject.assignedClass} - {subject.section}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
                         <div className="">
-                          <span className="">Subject Role</span>
+                          <span className="">Assigned Subject</span>
                         </div>
                         <div className="h-10 w-10 bg-[#755485] text-white rounded-full flex items-center justify-center">
-                          {subject.subject.charAt(0)}
+                          {subject.subject?.charAt(0)}
                         </div>
                         <div>
                           <h1 className="text-base text-[#333333]">
@@ -219,7 +292,6 @@ function Attendances() {
                         <div className="flex flex-col space-y-2 text-sm ">
                           <div className="flex items-center gap-2">
                             <MdOutlineEmail />
-
                             <span className="text-gray-500">
                               {" "}
                               {subject.email}
@@ -246,13 +318,8 @@ function Attendances() {
           )}
         </motion.div>
       ) : (
-        <motion.div
-          key="attendance"
-          // initial={{ opacity: 0 }}
-          // animate={{ opacity: 1 }}
-          // exit={{ opacity: 0 }}
-        >
-          <div className="bg-gradient-to-t from-[#2b2b2b] via-[#2b2b2b]  to-[#3b3c3f]  w-full h-72  rounded-xl pt-10">
+        <motion.div key="attendance">
+          <div className="bg-gradient-to-t from-[#2b2b2b] via-[#2b2b2b]  to-[#3b3c3f]  w-full h-72   rounded-xl pt-10">
             <div className="flex items-center justify-around w-full">
               <div className="py-10">
                 <h2 className="text-2xl text-white ">Attendance Sheet</h2>
@@ -270,22 +337,15 @@ function Attendances() {
                     <span className="pl-1">Report</span>
                   </Button>
                 </div>
-                {/* <div>
-                            <Button className="bg-[#969696]">
-                              {" "}
-                              <IoMdTime />
-                              <span className="pl-1">Time Management</span>
-                            </Button>
-                          </div> */}
               </div>
             </div>
           </div>
-          <div className="relative  bottom-28 mx-10 ">
-            <div className="from-[#3b3c3f] via-[#116752]  to-[#1d68bd] rounded-t-lg bg-gradient-to-t shadow-[0px_-20px_90px_rgba(0,0,0,0.3)] ">
+          <div className="relative   bottom-28 mx-10 ">
+            <div className="from-[#3b3c3f] via-[#116752]   to-[#1d68bd] rounded-t-lg bg-gradient-to-t shadow-[0px_-20px_90px_rgba(0,0,0,0.3)] ">
               <div className="attendance-heading flex items-center justify-around">
                 <Button
                   onClick={handleBack}
-                  className="  mr-5 rounded-full bg-black border border-gray-800  hover:text-white text-white "
+                  className="   mr-5 rounded-full bg-black border border-gray-800   hover:text-white text-white "
                 >
                   <FaArrowLeftLong
                     style={{
@@ -297,20 +357,23 @@ function Attendances() {
                 </Button>
                 {/* <h2 className="text-lg text-white py-10">{`${selectedSubject?.subject} Attendance Sheet`}</h2> */}
                 <div className="flex items-center gap-2">
-                  <Avatar className="rounded-lg w-28 h-28 border border-[#ffffff] p-[3px]  relative bottom-10">
+                  <Avatar className="rounded-lg w-28 h-28 border border-[#ffffff] p-[3px]   relative bottom-10">
                     <AvatarImage
-                      src="https://dersyb7nfifdf.cloudfront.net/production/interviewer-profile-pictures/0f6fee60-187e-44ed-8ccf-e0bc3b56eeac.jpg"
-                      alt=""
+                      src={selectedSubject?.avatar}
+                      alt={selectedSubject?.name}
                       className="rounded-lg"
                     />
-                    <AvatarFallback></AvatarFallback>
+                    <AvatarFallback>
+                      {selectedSubject?.name?.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
 
                   <div className="">
-                    <h1>Submited by:</h1>
-                    <span>Rahul Arora</span>
+                    <h1>Faculty</h1>
+                    <span>{selectedSubject?.name}</span>
+                    <br></br>
                     <span className="text-gray-300 text-sm">
-                      (rahularora@gmail.com)
+                      {selectedSubject?.subject}
                     </span>
                   </div>
                 </div>
@@ -318,20 +381,16 @@ function Attendances() {
             </div>
 
             <div className="bg-[#f7f7f7]">
-              {/* <hr
-                  className="mx-auto bg-[#0000003b] my-2 rounded-sm"
-                  style={{ width: "100%", height: "1px", borderWidth: 0 }}
-                ></hr> */}
-              <div className="bg-[#f7f7f7]  rounded-lg  ">
-                <div className="attendance-dataFlow py-5 flex items-center justify-between  p-5 rounded-b-lg from-[#1f1f1f] via-[#1f1f1f]  to-[#3b3c3f] bg-gradient-to-t  bg-[#1f1f1f] flex-wrap">
+              <div className="bg-[#f7f7f7]   rounded-lg   ">
+                <div className="attendance-dataFlow py-5 flex items-center justify-between   p-5 rounded-b-lg from-[#1f1f1f] via-[#1f1f1f]   to-[#3b3c3f] bg-gradient-to-t   bg-[#1f1f1f] flex-wrap">
                   <div className="flex items-center">
                     <div className="attendance-icon bg-gray-700 p-3 rounded-full">
                       <FcCalendar className="text-3xl" />
                     </div>
 
                     <div className="flex items-center flex-col pl-3">
-                      <h2 className="text-xl  text-white  ">
-                        Today,28 Feb 2024
+                      <h2 className="text-xl   text-white   ">
+                        Today,{formattedDate}
                       </h2>
 
                       <div className="flex items-center gap-2 pt-1">
@@ -348,16 +407,20 @@ function Attendances() {
                     <div className="bg-[#282828] p-5 rounded-lg border-gray-500 border">
                       <p className="text-gray-200 text-xs">Total Students</p>
                       <div className="flex items-center justify-between pt-3 ">
-                        <h1 className="text-white text-2xl pr-4">256</h1>
+                        <h1 className="text-white text-2xl pr-4">
+                          {dashboardCounts.students}
+                        </h1>
                         <div className="bg-[#2d2649] p-1 rounded-md">
                           <GraduationCap className="w-3 h-3 text-white" />
                         </div>
                       </div>
                     </div>
-                    <div className="bg-[#282828] p-5 rounded-lg border-gray-500 border">
-                      <p className="text-gray-200 text-xs">Present Students</p>
+                    <div className="bg-[#2822828] p-5 rounded-lg border-gray-500 border">
+                      <p className="text-gray200 text-xs">Present Students</p>
                       <div className="flex items-center justify-between pt-3">
-                        <h1 className="text-white text-2xl">250</h1>
+                        <h1 className="text-white text-2xl">
+                          {dashboardCounts.present}
+                        </h1>
                         <div className="bg-green-600 p-1 rounded-md">
                           <TrendingUp className="w-3 h-3 text-white" />
                         </div>
@@ -366,15 +429,17 @@ function Attendances() {
                     <div className="bg-[#282828] p-5 rounded-lg border-gray-500 border">
                       <p className="text-gray-200 text-xs">Absent Students</p>
                       <div className="flex items-center justify-between pt-3">
-                        <h1 className="text-white text-2xl">6</h1>
+                        <h1 className="text-white text-2xl">
+                          {dashboardCounts.absent}
+                        </h1>
                         <div className="bg-red-600 p-1 rounded-md">
                           <TrendingDown className="w-3 h-3 text-white" />
                         </div>
                       </div>
                     </div>
                     <div
-                      className="group bg-[#282828] p-5 rounded-lg border-gray-500 border relative transition-all duration-300"
-                      onClick={() => navigate("/attendance/viewall")}
+                      className="group bg-[#282828] p-5 rounded-lg border-gray-500 border relative transition-all duration-300 cursor-pointer"
+                      onClick={handleNavigate}
                     >
                       <p className="text-gray-200 text-xs">Question Bank</p>
                       <div className="flex items-center justify-between pt-3">
@@ -405,9 +470,17 @@ function Attendances() {
                       </p>
                     </div>
                     <div className="flex gap-4 my-5 p-3 border rounded-lg">
-                      <MonthSelection
-                        selectedMonth={(value) => setSelectedMonth(value)}
-                        onSelectDate={(date) => setSelectedDate(date)}
+                      <MonthSelectionforAtten
+                        selectedMonth={getMonth(displayMonth) + 1} // Pass month number
+                        selectedDate={selectedDate}
+                        onSelectMonth={(month) => {
+                          setSelectedMonth(month);
+                          setDisplayMonth(setMonth(displayMonth, month - 1));
+                        }}
+                        onSelectDate={(date) => {
+                          setSelectedDate(date);
+                          setDisplayDate(date);
+                        }}
                       />
 
                       <div className="search-button">
@@ -420,7 +493,9 @@ function Attendances() {
                     <AttendanceGrid
                       selectedMonth={displayMonth}
                       selectedDate={displayDate}
-                      selectedSubject={selectedSubject}
+                      selectedSubject={selectedSubject?.subject}
+                      assignedClass={selectedSubject?.assignedClass}
+                      section={selectedSubject?.section}
                     />
                   </div>
                 </div>

@@ -37,11 +37,7 @@ const Courses = () => {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [confirmedCourses, setConfirmedCourses] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [deleteConfirmation, setDeleteConfirmation] = useState({
-    open: false,
-    courseId: null,
-  });
+  const [selectedCategory, setSelectedCategory] = useState("Frontend");
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -114,15 +110,18 @@ const Courses = () => {
     return match && match[7] && match[7].length === 11 ? match[7] : false;
   }
 
-  const handleConfirms = async (courseid) => {
-     await handleDeleteCourse(courseid)
+  const handleConfirms = (courseTitle) => {
+    setConfirmedCourses((prev) => [...prev, courseTitle]);
+    const updatedCourses = [...confirmedCourses, courseTitle];
+    setConfirmedCourses(updatedCourses);
+    localStorage.setItem("confirmedCourses", JSON.stringify(updatedCourses));
   };
 
   const handleConfirm = () => {
     setIsConfirmed(true);
-    //setShowConfetti(true);
+    setShowConfetti(true);
     setTimeout(() => {
-      //setShowConfetti(false);
+      setShowConfetti(false);
     }, 5000);
     setInputValue("");
   };
@@ -148,22 +147,10 @@ const Courses = () => {
       // Refresh the courses after successful deletion
       const updatedCourses = courses.filter((course) => course._id !== courseId);
       setCourses(updatedCourses);
+
     } catch (error) {
       console.error("Error deleting course:", error);
     }
-  };
-
-  const openDeleteConfirmation = (courseId) => {
-    setDeleteConfirmation({ open: true, courseId });
-  };
-
-  const closeDeleteConfirmation = () => {
-    setDeleteConfirmation({ open: false, courseId: null });
-  };
-
-  const confirmDelete = () => {
-    handleDeleteCourse(deleteConfirmation.courseId);
-    closeDeleteConfirmation();
   };
 
   return (
@@ -282,7 +269,8 @@ const Courses = () => {
           {courses
             .filter(
               (course) =>
-                selectedCategory === "All" || course.category === selectedCategory
+                selectedCategory === "All" ||
+                course.category === selectedCategory
             )
             .map((course) => (
               <Card
@@ -489,11 +477,11 @@ const Courses = () => {
                             <div className="flex flex-col items-center gap-4">
                               <DialogHeader>
                                 <DialogTitle className="text-center text-green-500">
-                                  Delete confirmation!
+                                  Congratulations! <span>🎉</span>
                                 </DialogTitle>
                               </DialogHeader>
                               <p className="text-center">
-                                Your course "{course.crsid}" has been successfully Deleted.
+                                Your course "{course.crsid}" has been successfully confirmed.
                               </p>
                               <DialogFooter>
                                 <DialogClose asChild>
@@ -533,7 +521,7 @@ const Courses = () => {
                                 <Input
                                   id={`course-name-${course.id}`}
                                   type="text"
-                                  placeholder={`Type Delete to confirm`}
+                                  placeholder={`Type ${course.crsid} to confirm`}
                                   value={inputValue}
                                   onChange={(e) => setInputValue(e.target.value)}
                                 />
@@ -549,7 +537,7 @@ const Courses = () => {
                                   className="flex-1"
                                   disabled={inputValue !== course.crsid}
                                   onClick={() => {
-                                    handleConfirms(course._id);
+                                    handleConfirms(course.crsid);
                                     handleConfirm();
                                   }}
                                 >
@@ -567,24 +555,6 @@ const Courses = () => {
             ))}
         </div>
       </div>
-      <Dialog open={deleteConfirmation.open} onOpenChange={closeDeleteConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this course?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="secondary" onClick={closeDeleteConfirmation}>
-              Cancel
-            </Button>
-            <Button type="button" variant="destructive" onClick={confirmDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

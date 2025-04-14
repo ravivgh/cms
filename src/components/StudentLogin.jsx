@@ -38,11 +38,10 @@ const StudentLogin = () => {
     return emailRegex.test(email);
   };
 
-  
   const handleEmailChange = (e) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
-    setIsEmailValid(validateEmail(newEmail)); 
+    setIsEmailValid(validateEmail(newEmail));
   };
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -182,7 +181,7 @@ const StudentLogin = () => {
               Access your attendance, resources, and academic progress all in
               one place.
             </p>
-            <div className="student-band flex  items-center justify-center  bg-[#a7d6aa] p-2 mt-9 w-[210px] rounded-full mx-auto lg:mx-0 ">
+            <div className="student-band flex  items-center justify-center  bg-[#a7d6aa] p-2 mt-9 w-fit rounded-full mx-auto lg:mx-0 ">
               <PiStudentFill style={{ fontSize: "20px", color: "black" }} />
               <p className="text-black ml-2 md:ml-0">Track Your Attendance</p>
             </div>
@@ -280,19 +279,19 @@ const StudentLogin = () => {
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="/static/images/avatar/1.jpg"
+                      src="https://avatars.githubusercontent.com/u/20?v=4"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="/static/images/avatar/2.jpg"
+                      src="https://avatars.githubusercontent.com/u/26?v=4"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="/static/images/avatar/4.jpg"
+                      src="https://avatars.githubusercontent.com/u/22?v=4"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="/static/images/avatar/5.jpg"
+                      src="https://avatars.githubusercontent.com/u/23?v=4"
                     />
                   </AvatarGroup>
                 </div>

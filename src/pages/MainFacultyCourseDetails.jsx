@@ -1,9 +1,8 @@
 import { useState } from "react";
-import Sidebar from "../components/Sidebar";
-import DetalisCourse from "@/components/course/DetalisCourse";
 import FacultySidebar from "@/components/FacultySidebar";
+import DetalisCourse from "@/components/course/DetalisCourse";
 
-const MainFacultyCourseDetails = () => {
+const MainCourseDetalis = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const handleSidebarToggle = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -11,10 +10,7 @@ const MainFacultyCourseDetails = () => {
   return (
     <div>
       <div className="flex">
-        <FacultySidebar
-          isSidebarOpen={isSidebarOpen}
-          onToggle={handleSidebarToggle}
-        />
+        <FacultySidebar isSidebarOpen={isSidebarOpen} onToggle={handleSidebarToggle} />
         <main
           className={`transition-all duration-500 ${
             isSidebarOpen ? "ml-[12.5rem]" : "ml-[5rem]"
@@ -30,4 +26,4 @@ const MainFacultyCourseDetails = () => {
   );
 };
 
-export default MainFacultyCourseDetails;
+export default MainCourseDetalis;

@@ -21,7 +21,7 @@ import {
 
 const QuestionSheet = () => {
   const navigate = useNavigate();
-  const TOTAL_TIME = 600; // 10 minutes for entire quiz
+  const TOTAL_TIME = 600; 
   const [timeLeft, setTimeLeft] = useState(TOTAL_TIME);
   const [answers, setAnswers] = useState([]);
   const [quizCompleted, setQuizCompleted] = useState(false);
@@ -33,6 +33,8 @@ const QuestionSheet = () => {
   const [subjects, setSubjects] = useState([]); // State to store subjects
   const [selectedSubject, setSelectedSubject] = useState("");
   const [stotalPointsEarned,setTotalpoints] = useState(0)
+  const[questionid,setQuestionid] = useState();
+  const[questionsub,setQuestionsub] = useState();
 
   // Fetch questions from the backend API
   const fetchQuestions = async () => {
@@ -58,12 +60,15 @@ const QuestionSheet = () => {
 
       const data = await response.json();
 
+
       if (data.error) {
         setError(data.error);
       } else {
         
+        setQuestionid(data.questions[0]._id)
+        setQuestionsub(data.questions[0].subject_name)
         const uniqueSubjects = [
-          ...new Set(data.questions.map((q) => q.subject_name)),
+          ...new Set(data.questions.flatMap((q) => q.subject_name)),
         ];
         setSubjects(uniqueSubjects);
 
@@ -77,7 +82,7 @@ const QuestionSheet = () => {
             const formattedQuestions = filteredQuestions.reduce((acc, curr) => {
               return acc.concat(curr.questions.map((question) => ({
                 ...question,
-                _id: question.id, // Use question.id as the unique identifier
+                _id: question.id, 
                 options: Object.entries(question.options).map(([key, value]) => ({ key, value })),
                 rewardPoints: typeof question.rewardPoints === 'string' ? parseInt(question.rewardPoints) : question.rewardPoints || 10,
               })));
@@ -142,10 +147,10 @@ const QuestionSheet = () => {
     questions.forEach((question) => {
       const isCorrect =
         selectedAnswers[question._id] === question.correctAnswer;
-      const pointsForQuestion = isCorrect ? question.rewardPoints || 10 : 0; // Default to 10 points if not provided
+      const pointsForQuestion = isCorrect
+        ? question.rewardPoints || 10
+        : 0;
       totalPointsEarned += pointsForQuestion;
-       
-      
 
       allAnswers.push({
         questionId: question._id,
@@ -158,12 +163,12 @@ const QuestionSheet = () => {
 
     setAnswers(allAnswers);
     setQuizCompleted(true);
-    updateLoyaltyPoints(totalPointsEarned)
+    updateLoyaltyPoints(totalPointsEarned, allAnswers);
+    console.log(questions)
     console.log("Total Points Earned:", totalPointsEarned);
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 5000);
   };
-
   const calculateStats = () => {
     const totalQuestions = answers.length;
     const correctAnswers = answers.filter((a) => a.correct).length;
@@ -184,27 +189,46 @@ const QuestionSheet = () => {
     };
   };
 
-  async function updateLoyaltyPoints(totalPointsEarned) {
+  async function updateLoyaltyPoints(
+    totalPointsEarned,
+  ) {
     try {
-      const response = await fetch("http://localhost:5472/services/updateLoyaltyPoints", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studentId: parseInt(localStorage.getItem("student_id")),
-          loyaltyPointsEarned:  totalPointsEarned,
-          college_id :parseInt(localStorage.getItem("college_id"))
-        }),
-      });
-  
+      const submissionDate = new Date();
+      const formattedDate = `${submissionDate
+        .getDate()
+        .toString()
+        .padStart(2, "0")}/${(submissionDate.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}/${submissionDate.getFullYear()}`;
+
+      const response = await fetch(
+        "http://localhost:5472/services/updateLoyaltyPoints",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            studentId: parseInt(localStorage.getItem("student_id")),
+            loyaltyPointsEarned: totalPointsEarned,
+            question_bank_id: questionid,
+            subject_name: questionsub,
+            college_id: parseInt(localStorage.getItem("college_id")),
+            submission_date: formattedDate,
+            
+          }),
+        }
+      );
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
-  
+
       const data = await response.json();
-  
+
       if (data.success) {
         console.log("Loyalty points updated successfully:", data.message);
         return data;
@@ -212,14 +236,11 @@ const QuestionSheet = () => {
         console.error("Loyalty points update failed:", data.message);
         return data;
       }
-  
     } catch (error) {
       console.error("Error updating loyalty points:", error);
-      return {success: false, message: error.message };
+      return { success: false, message: error.message };
     }
   }
-  
-
   if (quizCompleted) {
     const stats = calculateStats();
     return (

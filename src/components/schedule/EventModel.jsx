@@ -1,8 +1,8 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import GlobalContext from "@/context/GlobalContext";
 import { Input } from "../ui/input";
 import { TextField } from "@mui/material";
-import { MdDelete } from "react-icons/md";
+import { MdDelete, MdMic, MdMicOff } from "react-icons/md";
 import { IoIosCheckmark } from "react-icons/io";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import { HiMiniUsers } from "react-icons/hi2";
@@ -34,6 +34,7 @@ export default function EventModal() {
   const [endTime, setEndTime] = useState(
     selectedEvent ? selectedEvent.endTime : ""
   );
+  const [timeError, setTimeError] = useState("");
   const [selectedLabel, setSelectedLabel] = useState(
     selectedEvent
       ? labelsClasses.find((lbl) => lbl === selectedEvent.label)
@@ -44,6 +45,7 @@ export default function EventModal() {
   );
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
 
   const [staffList, setStaffList] = useState([]);
   const [staffLoading, setStaffLoading] = useState(true);
@@ -56,6 +58,54 @@ export default function EventModal() {
   const [classLoading, setClassLoading] = useState(true);
   const [classError, setClassError] = useState(null);
 
+  const recognitionRef = useRef(null);
+
+  // Initialize SpeechRecognition
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = "en-US";
+
+      recognitionRef.current.onresult = (event) => {
+        let finalTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + " ";
+          }
+        }
+        setDescription((prev) => prev + finalTranscript);
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsRecording(false);
+        alert("Error with voice input: " + event.error);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+    }
+  }, []);
+
+  // Time validation (unchanged)
+  useEffect(() => {
+    if (startTime && endTime) {
+      if (endTime <= startTime) {
+        setTimeError("End time must be after start time");
+      } else {
+        setTimeError("");
+      }
+    } else {
+      setTimeError("");
+    }
+  }, [startTime, endTime]);
+
+  // Fetch staff (unchanged)
   useEffect(() => {
     const fetchStaff = async () => {
       try {
@@ -91,6 +141,7 @@ export default function EventModal() {
     fetchStaff();
   }, []);
 
+  // Fetch class array (unchanged)
   useEffect(() => {
     const fetchClassArray = async () => {
       try {
@@ -126,6 +177,31 @@ export default function EventModal() {
     fetchClassArray();
   }, []);
 
+  // Voice recording toggle
+  const toggleRecording = () => {
+    if (!recognitionRef.current) {
+      alert("Speech recognition is not supported in your browser.");
+      return;
+    }
+    if (isRecording) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+      setIsRecording(true);
+    }
+  };
+
+  // Suggest end time function
+  const suggestEndTime = (intervalMinutes) => {
+    if (startTime) {
+      const [hours, minutes] = startTime.split(":");
+      const start = new Date();
+      start.setHours(parseInt(hours), parseInt(minutes));
+      start.setMinutes(start.getMinutes() + intervalMinutes);
+      setEndTime(start.toTimeString().slice(0, 5));
+    }
+  };
+
   const handleClassChange = (selectedClass) => {
     setSelectedClass(selectedClass);
     const selectedClassData = classArray.find(
@@ -133,8 +209,8 @@ export default function EventModal() {
     );
     if (selectedClassData) {
       setSectionList(selectedClassData.Sections);
-      setSelectedSection(""); // Reset section when class changes
-      setSubjectList([]); // Reset subjects when class changes
+      setSelectedSection("");
+      setSubjectList([]);
     }
   };
 
@@ -159,7 +235,6 @@ export default function EventModal() {
     console.log("Selected Class:", selectedClass);
     console.log("Selected Section:", selectedSection);
 
-    // Time validation
     if (!startTime || !endTime) {
       alert("Please select both start and end times.");
       return;
@@ -183,29 +258,26 @@ export default function EventModal() {
     };
 
     try {
-      const response = await fetch("http://localhost:5472/services/addsubject", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(eventData),
-      });
+      const response = await fetch(
+        "http://localhost:5472/services/addsubject",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(eventData),
+        }
+      );
 
-      if (response.status == 409) {
-       
-        
-        alert("Another Schedule already exsist for the Given Time");
-        return; // Stop further execution
-      }
-      else if (response.status == 408) {
-       
-        
+      if (response.status === 409) {
+        alert("Another Schedule already exists for the Given Time");
+        return;
+      } else if (response.status === 408) {
         alert("Faculty is already scheduled for another class at this time");
-        return; // Stop further execution
+        return;
       }
 
-      const result = await response.json(); // Parse JSON
-
+      const result = await response.json();
       if (!result) {
         console.error("Unable to Save Schedule");
         alert(result.message);
@@ -237,11 +309,12 @@ export default function EventModal() {
       alert("Failed to save event. Please try again.");
     }
   };
+
   return (
     <div className="h-screen w-full fixed left-0 top-0 flex justify-center items-center text-black z-40 bg-black bg-opacity-50">
       <form className="bg-[#f0f4f9] rounded-3xl shadow-2xl w-full md:w-1/2 lg:w-1/3">
         <header className="bg-gray-800 px-4 py-2 flex justify-between items-center rounded-t-3xl">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-sm font-medium text-gray-300">
             {selectedEvent ? "Edit Event" : "Create Event"}
           </h2>
           <div className="flex items-center gap-3">
@@ -269,7 +342,7 @@ export default function EventModal() {
         </header>
         <div className="p-4">
           <div className="space-y-4">
-            {/* Class Dropdown */}
+            {/* Class Dropdown (unchanged) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Select Class
@@ -302,7 +375,9 @@ export default function EventModal() {
                         className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => handleClassChange(cls.Class)}
                       >
-                        <span className="text-black font-medium">{cls.Class}</span>
+                        <span className="text-black font-medium">
+                          {cls.Class}
+                        </span>
                       </DropdownMenuItem>
                     ))
                   )}
@@ -310,7 +385,7 @@ export default function EventModal() {
               </DropdownMenu>
             </div>
 
-            {/* Section Dropdown */}
+            {/* Section Dropdown (unchanged) */}
             {selectedClass && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -335,7 +410,9 @@ export default function EventModal() {
                         className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => handleSectionChange(sec.Section)}
                       >
-                        <span className="text-black font-medium">{sec.Section}</span>
+                        <span className="text-black font-medium">
+                          {sec.Section}
+                        </span>
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -343,7 +420,7 @@ export default function EventModal() {
               </div>
             )}
 
-            {/* Subject Dropdown */}
+            {/* Subject Dropdown (unchanged) */}
             {selectedSection && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -366,7 +443,9 @@ export default function EventModal() {
                         className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => handleSubjectChange(subject)}
                       >
-                        <span className="text-black font-medium">{subject}</span>
+                        <span className="text-black font-medium">
+                          {subject}
+                        </span>
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
@@ -374,8 +453,8 @@ export default function EventModal() {
               </div>
             )}
 
-            {/* Subject Description */}
-            <div>
+            {/* Subject Description with Voice Input */}
+            <div className="relative">
               <TextField
                 id="standard-basic"
                 label="Subject Description"
@@ -388,34 +467,71 @@ export default function EventModal() {
                 multiline
                 rows={2}
               />
+              <button
+                type="button"
+                onClick={toggleRecording}
+                className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full ${
+                  isRecording
+                    ? "bg-red-500 text-white"
+                    : "bg-gray-200 text-gray-600"
+                } hover:bg-opacity-80 transition-colors`}
+                title={isRecording ? "Stop Recording" : "Start Voice Input"}
+              >
+                {isRecording ? <MdMicOff size={20} /> : <MdMic size={20} />}
+              </button>
             </div>
 
-            {/* Date and Time Inputs */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <FaRegCalendarAlt className="text-gray-500" />
-                <p className="text-sm">{daySelected.format("dddd, MMMM DD")}</p>
+            {/* Date and Time Inputs with Suggestions */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-10">
+                <div className="flex items-center gap-2">
+                  <FaRegCalendarAlt className="text-gray-500" />
+                  <p className="text-sm">
+                    {daySelected.format("dddd, MMMM DD")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <IoMdTime className="text-gray-500" />
+                  <input
+                    type="time"
+                    id="start-time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="p-1 border rounded bg-[#e9eef6]"
+                  />
+                  <input
+                    type="time"
+                    id="end-time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="p-1 border rounded bg-[#e9eef6]"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <IoMdTime className="text-gray-500" />
-                <input
-                  type="time"
-                  id="start-time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="p-1 border rounded bg-[#e9eef6]"
-                />
-                <input
-                  type="time"
-                  id="end-time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="p-1 border rounded bg-[#e9eef6]"
-                />
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => suggestEndTime(60)}
+                    className="text-xs text-gray-600 hover:text-black"
+                  >
+                    +1h
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => suggestEndTime(120)}
+                    className="text-xs text-gray-600 hover:text-black"
+                  >
+                    +2h
+                  </button>
+                </div>
+                {timeError && (
+                  <p className="text-red-500 text-sm">{timeError}</p>
+                )}
               </div>
             </div>
 
-            {/* Member Section */}
+            {/* Member Section (unchanged) */}
             <div>
               <div className="flex items-center justify-center gap-2 pb-3">
                 <HiMiniUsers className="text-gray-500" />
@@ -457,7 +573,8 @@ export default function EventModal() {
                             setSelectedFaculty({
                               id: staff._id,
                               name: staff.Staff_name,
-                              avatarUrl: "https://avatars.githubusercontent.com/u/1?v=4",
+                              avatarUrl:
+                                "https://avatars.githubusercontent.com/u/1?v=4",
                             })
                           }
                         >
@@ -478,7 +595,7 @@ export default function EventModal() {
               </div>
             </div>
 
-            {/* Labels */}
+            {/* Labels (unchanged) */}
             <div className="flex items-center gap-2 py-3">
               <TbCalendarEvent className="text-gray-500" />
               <div className="flex gap-x-2">
@@ -503,7 +620,12 @@ export default function EventModal() {
           <button
             type="submit"
             onClick={handleSubmit}
-            className="bg-black hover:bg-gray-800 px-6 py-2 rounded-full text-white transition-colors"
+            disabled={!!timeError}
+            className={`px-6 py-2 rounded-full text-white transition-colors ${
+              timeError
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-black hover:bg-gray-800"
+            }`}
           >
             Save
           </button>

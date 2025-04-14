@@ -10,7 +10,7 @@ import { deepPurple } from "@mui/material/colors";
 import axios from "axios";
 import { customAlphabet } from "nanoid";
 
-const AttendanceGrid = ({ selectedMonth, setSelectedMonth, selectedSubject }) => {
+const AttendanceGridforFaculty = ({ selectedMonth, setSelectedMonth, selectedSubject }) => {
   const [rowData, setRowData] = useState([]);
   const [colDefs, setColDefs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth, selectedSubject }) =>
   const fetchAttendanceRecords = async () => {
     try {
       const response = await axios.post('http://localhost:5472/services/getattendance', {
-        subject: selectedSubject,
+        subject: localStorage.getItem("subject"),
         month: moment(selectedMonth).format('M'),
         year: moment(selectedMonth).year(),
       });
@@ -50,7 +50,7 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth, selectedSubject }) =>
   const getUniqueRecord = async () => {
     try {
       const response = await axios.post('http://localhost:5472/services/getattesubstud', {
-        subject: selectedSubject,
+        subject: localStorage.getItem("subject"),
       });
       const fetchedUsers = response.data.Students || [];
       return fetchedUsers.map(user => ({
@@ -273,4 +273,4 @@ const AttendanceGrid = ({ selectedMonth, setSelectedMonth, selectedSubject }) =>
   );
 };
 
-export default AttendanceGrid;
+export default AttendanceGridforFaculty;

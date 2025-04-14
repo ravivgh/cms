@@ -5,7 +5,6 @@ import CreateEventButtonStudent from "./CreateEventButtonStudent";
 export default function Sidebar() {
   return (
     <aside className=" p-5 w-64 bg-[#333332] ">
-      <CreateEventButtonStudent />
       <SmallCalendar />
       <Labels />
     </aside>

@@ -9,7 +9,7 @@ import { CgLogOut } from "react-icons/cg";
 import { ClipLoader } from "react-spinners";
 import { MdOutlineCollectionsBookmark } from "react-icons/md";
 import { HiChatAlt2 } from "react-icons/hi";
-import { PiVideoConferenceFill } from "react-icons/pi";
+import { PiVideoConferenceFill,PiVideoCameraBold } from "react-icons/pi";
 import { BsCalendarDayFill } from "react-icons/bs";
 import { FaBriefcase } from "react-icons/fa";
 
@@ -32,6 +32,7 @@ function FacultySidebar({ isSidebarOpen, onToggle, profilePicture }) {
         localStorage.removeItem("profile_pic")
         localStorage.removeItem("staff_id")
         localStorage.removeItem("subject")
+        localStorage.removeItem("staff_name")
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
@@ -213,7 +214,7 @@ function FacultySidebar({ isSidebarOpen, onToggle, profilePicture }) {
               onClick={() => setSelectedOption("/initiate-meet-faculty")}
             >
               <i>
-                <PiVideoConferenceFill className="text-lg" />
+                <PiVideoCameraBold className="text-lg" />
               </i>
 
               <span

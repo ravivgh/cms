@@ -188,7 +188,7 @@ const StaffLogin = () => {
               Manage your classes, track student attendance, and more with our
               comprehensive tools.
             </p>
-            <div className="faulty-band flex  items-center justify-center  bg-[#f1ce8b] p-2 mt-9 w-[250px] rounded-full mx-auto lg:mx-0 ">
+            <div className="faulty-band flex  items-center justify-center  bg-[#f1ce8b] p-2 mt-9 w-fit rounded-full mx-auto lg:mx-0 ">
               <MdSupervisorAccount
                 style={{ fontSize: "20px", color: "black" }}
               />
@@ -290,19 +290,19 @@ const StaffLogin = () => {
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="/static/images/avatar/1.jpg"
+                      src="https://avatars.githubusercontent.com/u/34?v=4"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="/static/images/avatar/2.jpg"
+                      src="https://avatars.githubusercontent.com/u/46?v=4"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="/static/images/avatar/4.jpg"
+                      src="https://avatars.githubusercontent.com/u/4?v=4"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="/static/images/avatar/5.jpg"
+                      src="https://avatars.githubusercontent.com/u/3?v=4"
                     />
                   </AvatarGroup>
                 </div>

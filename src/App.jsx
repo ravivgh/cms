@@ -57,15 +57,9 @@ import MainStudentMaster from "./pages/MainStudentMaster";
 import MainStudentAppointment from "./pages/MainStudentAppointment";
 import MainStudentProfile from "./pages/MainStudentProfile";
 import JoinMeetStudent from "./components/StudentVideo";
+import StudentListFaculty from "./components/StudentListFaculty";
 import QnsView from "./components/FacultyQnS";
-// import Register from "./components/Register";
-// import HomePage from "./components/HomePage";
-// import LoginPage from "./components/LoginPage";
-
-// import Navbar from "./components/Navbar";
-// import StudentLogin from "./components/StudentLogin";
-// import FaultyLogin from "./components/FaultyLogin";
-// import AdminLogin from "./components/AdminLogin";
+import StudentCourseDetails from "./pages/StudentCourseDetalis";
 
 function App() {
   return (
@@ -94,6 +88,7 @@ function App() {
           <Route path="/course" element={<MainCoursePage />} />
           <Route path="/course/addcourse" element={<MainCourseAdd />} />
           <Route path="/course/:courseId" element={<MainCourseDetalis />} />
+          <Route path="/studentcourse/:courseId" element={<StudentCourseDetails />} />
 {/*<Route path="/chat" element={<MainChatMessage />} /> */}
           <Route path="/collegemaster" element={<MainMaster />} />
           <Route
@@ -146,7 +141,7 @@ function App() {
           <Route path="/courses" element={<MainCourseFaculty />} />
           <Route path="/courses/addcourse" element={<MainFacultyAddCourse />} />
           <Route
-            path="/courses/:coursesId"
+            path="/course/:coursesId"
             element={<MainFacultyCourseDetails />}
           />
           <Route path="/chats" element={<QnsView />} />

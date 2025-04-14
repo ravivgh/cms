@@ -1,9 +1,9 @@
 import React from "react";
-import LeaveFaculty from "../components/Leave";
+import Leavefacedet from "@/components/Leave_withfacedet";
 const MainStudentLeave = () => {
   return (
     <>
-      <LeaveFaculty />
+      <Leavefacedet />
     </>
   );
 };

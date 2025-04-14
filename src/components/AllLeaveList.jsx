@@ -145,113 +145,116 @@ const AllLeaveList = () => {
   }
 
   return (
-    <div className=" mx-auto p-6 bg-[#1d1e22]">
-      <h1 className="text-white text-2xl font-medium my-10 mx-5">
-        Leave Management
-      </h1>
-      <div className="rounded-2xl shadow-sm p-6 mb-6 bg-[#2b2d31] mx-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="relative flex-grow md:flex-grow-0">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search leave requests..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
-            />
+    <>
+      <div className=" mx-auto p-6 bg-[#1d1e22]">
+        <div className="">
+          <h1 className="text-white text-2xl font-medium my-10 mx-5">
+            Leave Management
+          </h1>
+          <div className="rounded-2xl shadow-sm p-6 mb-6 bg-[#2b2d31] mx-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="relative flex-grow md:flex-grow-0">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search leave requests..."
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange("search", e.target.value)}
+                  className="pl-10 pr-4 py-2 w-full md:w-64 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                />
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange("status", e.target.value)}
+                  className="px-3 py-2 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                >
+                  <option value="all" className="text-black">
+                    All Status
+                  </option>
+                  <option value="pending" className="text-black">
+                    Pending
+                  </option>
+                  <option value="approved" className="text-black">
+                    Approved
+                  </option>
+                  <option value="rejected" className="text-black">
+                    Rejected
+                  </option>
+                </select>
+
+                <select
+                  value={filters.role}
+                  onChange={(e) => handleFilterChange("role", e.target.value)}
+                  className="px-3 py-2 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                >
+                  <option value="all" className="text-black">
+                    All Roles
+                  </option>
+                  <option value="Faculty" className="text-black">
+                    Faculty
+                  </option>
+                  <option value="Student" className="text-black">
+                    Student
+                  </option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="px-3 py-2 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
-            >
-              <option value="all" className="text-black">
-                All Status
-              </option>
-              <option value="pending" className="text-black">
-                Pending
-              </option>
-              <option value="approved" className="text-black">
-                Approved
-              </option>
-              <option value="rejected" className="text-black">
-                Rejected
-              </option>
-            </select>
-
-            <select
-              value={filters.role}
-              onChange={(e) => handleFilterChange("role", e.target.value)}
-              className="px-3 py-2 rounded-lg focus:outline-none bg-white/10 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
-            >
-              <option value="all" className="text-black">
-                All Roles
-              </option>
-              <option value="Faculty" className="text-black">
-                Faculty
-              </option>
-              <option value="Student" className="text-black">
-                Student
-              </option>
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-gradient-to-br bg-[#2b2d31] border border-gray-600 ">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center ">
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-200">Total Requests</p>
+                    <p className="text-2xl font-bold text-white">
+                      {leaveRequests.length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#2b2d31] border border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center">
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-200">Pending</p>
+                    <p className="text-2xl font-bold text-white">
+                      {getStatusCount("Pending")}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#2b[#2b2d31] border border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center">
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-200">Approved</p>
+                    <p className="text-2xl font-bold text-white">
+                      {getStatusCount("approved")}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#2b2d31] border border-gray-600">
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center">
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-200">Rejected</p>
+                    <p className="text-2xl font-bold text-white">
+                      {getStatusCount("rejected")}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <Card className="bg-gradient-to-br bg-[#2b2d31] border border-gray-600 ">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center ">
-              <div className="space-y-3">
-                <p className="text-sm text-gray-200">Total Requests</p>
-                <p className="text-2xl font-bold text-white">
-                  {leaveRequests.length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#2b2d31] border border-gray-600">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-3">
-                <p className="text-sm text-gray-200">Pending</p>
-                <p className="text-2xl font-bold text-white">
-                  {getStatusCount("pending")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#2b[#2b2d31] border border-gray-600">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-3">
-                <p className="text-sm text-gray-200">Approved</p>
-                <p className="text-2xl font-bold text-white">
-                  {getStatusCount("approved")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#2b2d31] border border-gray-600">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-3">
-                <p className="text-sm text-gray-200">Rejected</p>
-                <p className="text-2xl font-bold text-white">
-                  {getStatusCount("rejected")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="grid gap-4 bg-white p-5">
         {filteredRequests.length === 0 ? (
           <Card className="p-8 text-center bg-[#f2f2f2]">
@@ -316,13 +319,12 @@ const AllLeaveList = () => {
                           <Label className="text-gray-600">Duration</Label>
                           <p className="text-gray-900">
                             {new Date(request.from_date).toLocaleDateString()}{" "}
-                            to{" "}
-                            {new Date(request.to_date).toLocaleDateString()}
+                            to {new Date(request.to_date).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
 
-                      {request.status === "pending" && (
+                      {request.status === "Pending" && (
                         <div className="flex gap-2 justify-end">
                           <Button
                             variant="outline"
@@ -351,7 +353,7 @@ const AllLeaveList = () => {
           ))
         )}
       </div>
-    </div>
+    </>
   );
 };
 

@@ -33,6 +33,9 @@ function Sidebar({ isSidebarOpen, onToggle, profilePicture }) {
         localStorage.removeItem("otp")
         localStorage.removeItem("profile_pic")
         localStorage.removeItem("admin_id")
+        localStorage.removeItem("studentcount")
+        localStorage.removeItem("staffcount")
+        localStorage.removeItem("staff_name")
     setLoading(true);
     setTimeout(() => {
       setLoading(false);

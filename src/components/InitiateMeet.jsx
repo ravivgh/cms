@@ -38,9 +38,10 @@ const InitiateMeet = () => {
   const [classSectionData, setClassSectionData] = useState([]);
   const [sections, setSections] = useState([]);
   const [subjects, setSubjects] = useState([]);
- // State for toggling history view
+  // State for toggling history view
   const [showHistory, setShowHistory] = useState(false);
-
+  const [isCreatingMeeting, setIsCreatingMeeting] = useState(false);
+  const [meetingCreated, setMeetingCreated] = useState(false);
   // Mock data for previous meetings
   const previousMeetings = [
     {
@@ -71,10 +72,13 @@ const InitiateMeet = () => {
   useEffect(() => {
     const fetchClassSectionData = async () => {
       try {
-        const response = await fetch("http://localhost:5472/services/getclassarray", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
+        const response = await fetch(
+          "http://localhost:5472/services/getclassarray",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
         const data = await response.json();
         console.log("Class and Section Data:", data); // Debugging
 
@@ -148,10 +152,12 @@ const InitiateMeet = () => {
     }
 
     if (!selectedClass || !selectedSection) {
-      alert("Please select both class and section before starting the meeting.");
+      alert(
+        "Please select both class and section before starting the meeting."
+      );
       return;
     }
-
+    setIsCreatingMeeting(true);
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, "0");
     const minutes = String(now.getMinutes()).padStart(2, "0");
@@ -169,17 +175,21 @@ const InitiateMeet = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:5472/services/create-zoom-meeting", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(meetingData),
-      });
+      const response = await fetch(
+        "http://localhost:5472/services/create-zoom-meeting",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(meetingData),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
+        setMeetingCreated(true);
         alert("Meeting created successfully!");
         console.log("Meeting Details:", data);
       } else {
@@ -188,9 +198,17 @@ const InitiateMeet = () => {
     } catch (error) {
       console.error("Error creating meeting:", error);
       alert("An error occurred while creating the meeting.");
+    } finally {
+      setIsCreatingMeeting(false);
     }
   };
-
+  const resetForm = () => {
+    setMeetingId("");
+    setSelectedClass("");
+    setSelectedSection("");
+    setSelectedSubject(null);
+    setMeetingCreated(false);
+  };
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -265,7 +283,7 @@ const InitiateMeet = () => {
               </div>
 
               {showHistory ? (
-                  <div className="space-y-4">
+                <div className="space-y-4">
                   {previousMeetings.length > 0 ? (
                     previousMeetings.map((meeting) => (
                       <div
@@ -306,6 +324,22 @@ const InitiateMeet = () => {
                       No previous meetings found
                     </div>
                   )}
+                </div>
+              ) : meetingCreated ? (
+                <div className="text-center py-12 animate-fade-in-up">
+                  <h2 className="text-2xl font-bold text-white mb-4">
+                    The E-Lecture has been created!
+                  </h2>
+                  <p className="text-lg text-gray-200 mb-6">
+                    Please ask the host to join the meeting using the link sent
+                    via email.
+                  </p>
+                  <button
+                    onClick={resetForm}
+                    className="bg-gradient-to-r from-[#1d68bd] to-[#2a85e6] text-white py-3 px-8 rounded-lg hover:from-[#2a85e6] hover:to-[#1d68bd] transition-all transform hover:scale-105"
+                  >
+                    Create Another Meeting
+                  </button>
                 </div>
               ) : (
                 <>
@@ -373,7 +407,10 @@ const InitiateMeet = () => {
                           <SelectContent>
                             <SelectGroup>
                               {sections.map((section) => (
-                                <SelectItem key={section.Section} value={section.Section}>
+                                <SelectItem
+                                  key={section.Section}
+                                  value={section.Section}
+                                >
                                   {section.Section}
                                 </SelectItem>
                               ))}
@@ -403,7 +440,9 @@ const InitiateMeet = () => {
                     <div className="grid grid-cols-2 gap-4">
                       {subjects
                         .filter((subject) =>
-                          subject.toLowerCase().includes(searchTerm.toLowerCase())
+                          subject
+                            .toLowerCase()
+                            .includes(searchTerm.toLowerCase())
                         )
                         .map((subject) => (
                           <div
@@ -430,7 +469,9 @@ const InitiateMeet = () => {
                                 📚
                               </div>
                               <div>
-                                <h3 className="font-medium text-white text-sm">{subject}</h3>
+                                <h3 className="font-medium text-white text-sm">
+                                  {subject}
+                                </h3>
                               </div>
                             </div>
                             <div
@@ -450,19 +491,28 @@ const InitiateMeet = () => {
                   </div>
 
                   {/* Start Meeting Button */}
-                  <div className="sticky bottom-0 pt-6">
-                    <div className="bg-[#27282c] p-6 rounded-b-xl -mx-6 -mb-6 border-t border-gray-800">
-                      <button
-                        onClick={handleStartMeeting}
-                        className={`block text-center ${
-                          !selectedSubject
-                            ? "bg-gray-600 cursor-not-allowed"
-                            : "bg-[#1d68bd] hover:bg-blue-600"
-                        } text-white py-4 px-6 rounded-lg transition-colors text-lg font-medium`}
-                        disabled={!selectedSubject}
-                      >
-                        Start Meeting
-                      </button>
+                  <div className="sticky bottom-0 pt-6 ">
+                    <div className="bg-[#1f2023] p-8 rounded-b-2xl -mx-6 -mb-8 border-t border-gray-700 shadow-lg ">
+                      {isCreatingMeeting ? (
+                        <div className="text-center text-white">
+                          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-r-4 border-[#1d68bd] border-solid bg-gradient-to-r from-[#1d68bd]/20 to-transparent"></div>
+                          <p className="mt-4 text-lg font-medium">
+                            Creating Your E-Lecture...
+                          </p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleStartMeeting}
+                          className={`w-full text-center bg-gradient-to-r ${
+                            !selectedSubject
+                              ? "from-gray-600 to-gray-700 cursor-not-allowed"
+                              : "from-[#1d68bd] to-[#2a85e6] hover:from-[#2a85e6] hover:to-[#1d68bd]"
+                          } text-white py-4 px-6 rounded-lg transition-all transform hover:scale-105 text-xl font-semibold shadow-md`}
+                          disabled={!selectedSubject}
+                        >
+                          Start Meeting
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>

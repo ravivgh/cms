@@ -186,7 +186,7 @@ const AdminLogin = () => {
               information efficiently.
             </p>
 
-            <div className="admin-band  flex  items-center justify-center  bg-[#acc7e7]  p-2 mt-9 w-[190px] rounded-full mx-auto lg:mx-0 ">
+            <div className="admin-band  flex  items-center justify-center  bg-[#acc7e7]  px-3 py-2 mt-9 w-fit  rounded-full mx-auto lg:mx-0 gap-2">
               <MdOutlineAdminPanelSettings
                 style={{ fontSize: "20px", color: "black" }}
               />
@@ -286,19 +286,19 @@ const AdminLogin = () => {
                   <AvatarGroup total={24}>
                     <Avatar
                       alt="Remy Sharp"
-                      src="/static/images/avatar/1.jpg"
+                      src="https://cdn.prod.website-files.com/608e9cc36cbcc089f0998643/6734a14081a246fbb68851d7_Design%20Templates-Portrait_Intervue%20(334%20x%20212%20px)%20(6).png"
                     />
                     <Avatar
                       alt="Travis Howard"
-                      src="/static/images/avatar/2.jpg"
+                      src="https://cdn.prod.website-files.com/608e9cc36cbcc089f0998643/6734a11ab27574be137c4ca1_Design%20Templates-Portrait_Intervue%20(19)%201%20(1).png"
                     />
                     <Avatar
                       alt="Agnes Walker"
-                      src="/static/images/avatar/4.jpg"
+                      src="https://cdn.prod.website-files.com/608e9cc36cbcc089f0998643/6734a0fb60d081bdda9028b5_Design%20Templates-Portrait_Intervue%20(19)%201.png"
                     />
                     <Avatar
                       alt="Trevor Henderson"
-                      src="/static/images/avatar/5.jpg"
+                      src="https://st.depositphotos.com/63571822/54892/i/450/depositphotos_548923552-stock-photo-young-man-going-job-interview.jpg"
                     />
                   </AvatarGroup>
                 </div>

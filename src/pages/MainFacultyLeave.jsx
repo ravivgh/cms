@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import FacultySidebar from "@/components/FacultySidebar";
 import LeaveFaculty from "../components/Leave";
+import FacultyLeave from "@/components/Leave_Staff";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Avatar } from "@mui/material";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { MdCheckCircle, MdCancel, MdPending } from "react-icons/md";
 import { Search } from "lucide-react";
 import { FaArrowLeftLong } from "react-icons/fa6";
+
 
 const MainFacultyLeave = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -199,7 +201,7 @@ const MainFacultyLeave = () => {
             />
 
             {isCreatingLeave ? (
-              <LeaveFaculty />
+              <FacultyLeave />
             ) : (
               <div>
                 <div className="rounded-2xl shadow-sm p-6 mb-6 bg-[#2b2d31] mx-5">
@@ -296,7 +298,7 @@ const MainFacultyLeave = () => {
                                 </div>
                               </div>
 
-                              {request.status === "pending" && (
+                              {request.status === "Pending" && (
                                 <div className="flex gap-2 justify-end">
                                   <Button
                                     variant="outline"

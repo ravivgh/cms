@@ -12,6 +12,7 @@ import generateMCQs from "./question_bank/generate_questions.mjs";
 import {sendzoomconf,sendzoomconftostud} from "./email/send_zoom_confirmation.mjs"
 import sendleavestat from "./email/Send_Leave_Status.mjs";
 import { hostname } from "os";
+import moment from "moment";
 
 const app = express();
 const port = 5472;
@@ -204,10 +205,9 @@ app.post("/services/insertstaff", async (req, res) => {
   }
 });
 app.post("/services/insertstudent", async (req, res) => {
-  const { name, Class, section, d_o_b, Email, phone, college } = req.body;
-
+  const { Student_Name, Class, Section, DOB, Email, Mobile, college,address } = req.body;
+console.log(Student_Name)
   const db = new mongocon();
-
   try {
     await db.client.connect();
     const database = db.client.db(db.dbname);
@@ -215,18 +215,19 @@ app.post("/services/insertstudent", async (req, res) => {
     genid();
     const result = await collection.insertOne({
       _id: parseInt(uid),
-      Student_Name: name,
+      Student_Name: Student_Name,
       Class: Class,
-      Section: section,
-      DOB: d_o_b,
+      Section: Section,
+      DOB: DOB,
       Email: Email,
-      Mobile: phone,
+      Mobile: Mobile,
+      Address: address,
       College_id: college,
     });
     if (result.acknowledged == true && result.insertedId == uid) {
       res.status(200).send({ college_id: result.insertedId });
     } else {
-      res.status(500).send("Error with college creation");
+      res.status(500).send("Error while inserting student");
     }
   } catch (error) {
     console.error("Error inserting documents:", error);
@@ -294,6 +295,71 @@ app.post("/services/insertattendance", async (req, res) => {
     await db.client.close();
   }
 });
+app.post("/services/insertattendanceqb", async (req, res) => {
+  const { logs } = req.body;
+
+  const db = new mongocon();
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const attendance = database.collection("Attendance_Master");
+    const student = database.collection("Student_Master");
+
+    // Assuming 'logs' is an array of attendance records
+    if (!Array.isArray(logs) || logs.length === 0) {
+      return res.status(400).send({ error: "Request body should contain a non-empty array of attendance logs." });
+    }
+
+    const insertionResults = [];
+    for (const logEntry of logs) {
+      const studentId = logEntry.Student_id;
+      if (!studentId) {
+        insertionResults.push({ error: "Student_id is missing in a log entry." });
+        continue; // Skip to the next log entry
+      }
+
+      const stusearch = await student.findOne({ _id: parseInt(studentId) }); // Search by Student_id
+
+      if (stusearch) {
+        try {
+          const result = await attendance.insertOne(logEntry);
+          if (result.acknowledged) {
+            insertionResults.push({ message: `Attendance recorded for Student ID: ${studentId}` });
+          } else {
+            insertionResults.push({ error: `Failed to insert attendance for Student ID: ${studentId}` });
+          }
+        } catch (insertError) {
+          console.error(`Error inserting attendance for Student ID ${studentId}:`, insertError);
+          insertionResults.push({ error: `Error inserting attendance for Student ID: ${studentId} - ${insertError.message}` });
+        }
+      } else {
+        insertionResults.push({ error: `Student Not Found with ID: ${studentId}` });
+      }
+    }
+
+    // Send a response summarizing the insertion attempts
+    const successCount = insertionResults.filter(res => res.message).length;
+    const errorCount = insertionResults.filter(res => res.error).length;
+
+    if (errorCount === 0) {
+      res.status(200).send({ message: `${successCount} record(s) inserted successfully.` });
+    } else {
+      res.status(207).send({ // 207 Multi-Status to indicate partial success
+        message: `${successCount} record(s) inserted successfully, ${errorCount} record(s) failed.`,
+        errors: insertionResults.filter(res => res.error)
+      });
+    }
+
+  } catch (error) {
+    console.error("Error processing attendance insertion:", error);
+    res.status(500).send({ error: "Failed to process attendance insertion.", details: error.message });
+  } finally {
+    await db.client.close();
+  }
+});
+
+
 app.post("/services/deleteattendance", async (req, res) => {
   const { sid, date, Sub } = req.body;
 
@@ -332,7 +398,83 @@ app.post("/services/deleteattendance", async (req, res) => {
     await db.client.close();
   }
 });
+app.post("/services/getattendancetotal", async (req, res) => {
+  const { subject, fromDate, toDate } = req.body;
+  const db = new mongocon();
 
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const attendanceCollection = database.collection("Attendance_Master");
+    const studentCollection = database.collection("Student_Master");
+
+    const formattedFromDateResponse = moment(fromDate).format('D/M/YYYY');
+    const formattedToDateResponse = moment(toDate).format('D/M/YYYY');
+
+    const startDateMoment = moment(fromDate, 'YYYY-MM-DD');
+    const endDateMoment = moment(toDate, 'YYYY-MM-DD');
+
+    const totalDays = endDateMoment.diff(startDateMoment, 'days') + 1;
+
+    const query = {
+      Subject: subject,
+      Date: {
+        $gte: startDateMoment.format('D/M/YYYY'),
+        $lte: endDateMoment.format('D/M/YYYY'),
+      },
+    };
+    console.log("MongoDB Query:", query);
+
+    const attendanceRecords = await attendanceCollection.find(query).toArray();
+    console.log("Attendance Records:", attendanceRecords);
+
+    const studentAttendanceSummary = {};
+
+    for (const record of attendanceRecords) {
+      const student = await studentCollection.findOne({ "_id": record.Student_id });
+      if (student) {
+        const studentId = record.Student_id;
+        const isPresent = record.present === 'Y';
+        const status = isPresent ? 'Y' : 'N';
+
+        if (!studentAttendanceSummary[studentId]) {
+          studentAttendanceSummary[studentId] = {
+            Student_id: studentId,
+            Student_Name: student.Student_Name,
+            presentDays: 0,
+            absentDays: totalDays, // Initialize absentDays to totalDays
+            logs: [],
+          };
+        }
+
+        studentAttendanceSummary[studentId].logs.push({
+          _id: record._id,
+          Subject: record.Subject,
+          Date: record.Date,
+          Present: status,
+        });
+
+        if (isPresent) {
+          studentAttendanceSummary[studentId].presentDays++;
+          studentAttendanceSummary[studentId].absentDays--; // Decrement absentDays if present
+        }
+      }
+    }
+
+    const attendanceSummaryList = Object.values(studentAttendanceSummary);
+
+    res.json({
+      summary: attendanceSummaryList,
+      totalDays: totalDays,
+      fromDate: formattedFromDateResponse,
+      toDate: formattedToDateResponse,
+    });
+
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    res.status(500).send("Error fetching attendance");
+  }
+});
 app.post("/services/getattendance", async (req, res) => {
   const { subject, month, year } = req.body;
   const db = new mongocon();
@@ -540,7 +682,8 @@ app.post("/services/addstaff", async (req, res) => {
     // Filter staff data to remove records with existing emails
     const nonExistingStaff = [];
     for (const staff of staffdata) {
-      const existingStaff = await collection.findOne({ email: staff.email });
+      // Assuming each 'staff' object in the array has an 'Staff_Email' property
+      const existingStaff = await collection.findOne({ Staff_Email: staff.Staff_Email });
       if (!existingStaff) {
         nonExistingStaff.push(staff);
       }
@@ -675,6 +818,7 @@ console.log(getstaff["Assigned_Class"])
             DOB: 1,
             Email: 1,
             Mobile: 1,
+            Address: 1
           },
         }
       )
@@ -708,7 +852,7 @@ app.post("/services/retrievestudentsadmin", async (req, res) => {
             Student_Name: 1,
             Class: 1,
             Section: 1,
-            address : 1,
+            Address : 1,
             Subject: 1,
             DOB: 1,
             Email: 1,
@@ -904,73 +1048,75 @@ app.post("/services/getstafdashcount", async (req, res) => {
   try {
     await db.client.connect();
     const database = db.client.db(db.dbname);
-    const collection1 = database.collection("Staff_Master");
-    const collection2 = database.collection("Student_Master");
-    const collection3 = database.collection("Attendance_Master");
-    const holidays = database.collection("Holiday_Master");
+    const staffCollection = database.collection("Staff_Master");
+    const studentCollection = database.collection("Student_Master");
+    const attendanceCollection = database.collection("Attendance_Master");
+    const holidayCollection = database.collection("Holiday_Master");
 
-    const staffCount = await collection1.findOne({ _id: parseInt(staff_id) });
-    console.log(staffCount);
+    const staffDetails = await staffCollection.findOne({ _id: parseInt(staff_id) });
+    console.log("Staff Details:", staffDetails);
 
-    const studentCount = await collection2.countDocuments({
-      Class: staffCount["Assigned_Class"],
-      Section: staffCount["Section"],
+    if (!staffDetails) {
+      return res.status(200).send({ message: "Staff record not found" });
+    }
+
+    const assignedClass = staffDetails["Assigned_Class"];
+    const section = staffDetails["Section"];
+    const subject = staffDetails["Subject"];
+    const staffName = staffDetails["Staff_name"];
+
+    const studentCount = await studentCollection.countDocuments({
+      Class: assignedClass,
+      Section: section,
     });
-    //const staffName = await collection1.findOne({ _id: staff_id })
 
-    const dateRegex = `^\\d{1,2}/${month}/\\d{4}$`;
+    const currentYear = new Date().getFullYear();
+    const monthString = String(parseInt(month));
+    const yearString = String(currentYear);
 
-    const attendanceCount = await collection3.countDocuments({
-      Subject: staffCount["Subject"],
+    const dateRegex = new RegExp(`^\\d{1,2}/${monthString}/${yearString}$`);
+
+    const attendanceCount = await attendanceCollection.countDocuments({
+      Subject: subject,
       Date: {
         $regex: dateRegex,
-        $options: "i",
+        $options: 'i',
       },
       present: "Y",
     });
 
-    const holidayCount = await holidays.countDocuments({
-      $expr: {
-        $and: [
-          { $eq: [{ $month: "$date" }, parseInt(month)] },
-          { $eq: [{ $year: "$date" }, 2024] },
-        ],
+    const holidayCount = await holidayCollection.countDocuments({
+      date: {
+        $regex: new RegExp(`^\\d{1,2}/${monthString}/${yearString}$`),
+        $options: 'i',
       },
     });
 
-    let days = new Date(2024, month, 0).getDate();
-    let totalAttendanceOpportunities = (days - holidayCount) * studentCount;
-    let presentPercentage = Math.ceil(
-      (attendanceCount / totalAttendanceOpportunities) * 100
-    );
-    let absentPercentage = Math.ceil(
-      ((totalAttendanceOpportunities - attendanceCount) /
-        totalAttendanceOpportunities) *
-        100
-    );
+    const daysInMonth = new Date(currentYear, parseInt(month), 0).getDate();
+    const workingDays = daysInMonth - holidayCount;
+    const totalAttendanceOpportunities = workingDays * studentCount;
 
-    if (!staffCount) {
-      return res.status(200).send({ message: "Staff record not found" });
-    }
-    if (attendanceCount === 0) {
-      res.status(200).send({
-        absent: 0,
-        present: 0,
-        students: studentCount,
-        staffname: staffCount["Staff_name"],
-        Class: staffCount["Assigned_Class"],
-      });
+    let presentPercentage = 0;
+    let absentPercentage = 0;
+
+    if (totalAttendanceOpportunities > 0) {
+      presentPercentage = Math.ceil((attendanceCount / totalAttendanceOpportunities) * 100);
+      absentPercentage = 100 - presentPercentage;
     } else {
-      res.status(200).send({
-        absent: absentPercentage,
-        present: presentPercentage,
-        students: studentCount,
-        staffname: staffCount["Staff_name"],
-        Class: staffCount["Assigned_Class"],
-      });
+      presentPercentage = 0;
+      absentPercentage = 0;
     }
+
+    res.status(200).send({
+      absent: absentPercentage,
+      present: presentPercentage,
+      students: studentCount,
+      staffname: staffName,
+      Class: assignedClass,
+    });
+
   } catch (error) {
-    console.error("Error deleting record:", error);
+    console.error("Error fetching dashboard counts:", error);
     res.status(500).send({ message: "Server error" });
   } finally {
     await db.client.close();
@@ -1296,6 +1442,83 @@ app.post("/services/getstaffdetails", async (req, res) => {
     await db.client.close();
   }
 });
+app.post("/services/getadmindetails", async (req, res) => {
+  const db = new mongocon();
+  const { sid } = req.body;
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const studCollection = database.collection("Admin_users");
+
+    const stud = await studCollection.findOne({ _id: parseInt(sid) },{ projection: { Staff_name: 1,E_mail:1,Mob:1}});
+
+    if (!stud) {
+      return res.status(404).send({ message: "Record not found" });
+    }
+
+   
+    if (stud.length === 0) {
+      return res
+        .status(200)
+        .send({ message: "No subjects found for this class" });
+    }
+    else{
+
+      res.status(200).send({values : stud})
+    }
+
+
+  } catch (error) {
+    console.error("Error fetching subjects:", error);
+    res.status(500).send({ message: "Server error" });
+  } finally {
+    await db.client.close();
+  }
+});
+app.post("/services/getstaffdetailsforadminatte", async (req, res) => {
+  const db = new mongocon();
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const studCollection = database.collection("Staff_Master");
+
+    const studCursor = studCollection.find({}, { projection: {_id: 1, Staff_name: 1, Assigned_Class: 1, Section: 1, Staff_Email: 1, Mob: 1, Subject: 1 } });
+
+    const stud = await studCursor.toArray();
+
+    if (!stud) {
+      return res.status(404).send({ message: "Record not found" });
+    }
+
+    if (stud.length === 0) {
+      return res
+        .status(200)
+        .send({ message: "No staff details found" });
+    } else {
+      // Modify data to match the expected format
+      const values = stud.map(item => ({
+        _id: item._id, // Include the _id field
+        name: item.Staff_name,
+        assignedClass: item.Assigned_Class,
+        section: item.Section,
+        email: item.Staff_Email,
+        phoneNumber: item.Mob,
+        subject: item.Subject,
+        // You can add an avatar field here if you have it in your database
+        avatar: "https://via.placeholder.com/150", // Placeholder avatar
+      }));
+
+      res.status(200).send({ values: values });
+    }
+
+  } catch (error) {
+    console.error("Error fetching staff details:", error);
+    res.status(500).send({ message: "Server error" });
+  } finally {
+    await db.client.close();
+  }
+});
 app.post("/services/updatestaffdetails", async (req, res) => {
   const db = new mongocon();
   const { sid, Staff_name, Assigned_Class, Section, Staff_Email, Mob, Subject } = req.body;
@@ -1315,6 +1538,38 @@ app.post("/services/updatestaffdetails", async (req, res) => {
           Staff_Email: Staff_Email,
           Mob: Mob,
           Subject: Subject,
+        },
+      }
+    );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(404).send({ message: "Record not found" });
+    }
+
+    res.status(200).send({ message: "Record updated successfully" });
+  } catch (error) {
+    console.error("Error updating staff details:", error);
+    res.status(500).send({ message: "Server error" });
+  } finally {
+    await db.client.close();
+  }
+});
+app.post("/services/updateadmindetails", async (req, res) => {
+  const db = new mongocon();
+  const { sid, Staff_name, E_mail, Mob } = req.body;
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const studCollection = database.collection("Admin_users");
+
+    const updateResult = await studCollection.updateOne(
+      { _id: parseInt(sid) },
+      {
+        $set: {
+          Staff_name: Staff_name,
+          E_mail : E_mail,
+          Mob: Mob,
         },
       }
     );
@@ -1365,7 +1620,132 @@ app.post("/services/getstudentdetails", async (req, res) => {
     await db.client.close();
   }
 });
+app.post("/services/getstudentdetailsfromclasssection", async (req, res) => {
+  const db = new mongocon();
+  const { class: studentClass, section, subject } = req.body;
 
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const studCollection = database.collection("Student_Master");
+
+    const students = await studCollection.find(
+      { Class: studentClass, Section: section },
+      { projection: { Student_Name: 1, Class: 1, Section: 1, Email: 1, Mobile: 1, question_banks: 1 } }
+    ).toArray();
+
+    if (!students || students.length === 0) {
+      return res.status(404).send({ message: "No student records found for this class and section" });
+    }
+
+    const studentDetailsWithStatus = students.map(student => {
+      let latestQuestionBank = null;
+
+      if (student.question_banks && student.question_banks.length > 0) {
+        const subjectBanks = student.question_banks.filter(qb => qb.subject_name === subject);
+
+        if (subjectBanks.length > 0) {
+          // Sort question banks by completion date (assuming completion_date is a Date object or a string that can be parsed)
+          subjectBanks.sort((a, b) => new Date(b.completion_date) - new Date(a.completion_date));
+          latestQuestionBank = subjectBanks[0];
+        }
+      }
+
+      const subjectFound = !!latestQuestionBank;
+      const loyaltyPoints = latestQuestionBank?.points || 0;
+
+      return {
+        studid : student._id,
+        Student_Name: student.Student_Name,
+        Class: student.Class,
+        Section: student.Section,
+        LoyaltyPoints: loyaltyPoints,
+        Status: subjectFound ? "Submitted" : "Not Submitted",
+        CompletionDate: latestQuestionBank?.completion_date || null, // Include completion date
+      };
+    });
+
+    res.status(200).send({ values: studentDetailsWithStatus });
+
+  } catch (error) {
+    console.error("Error fetching student details:", error);
+    res.status(500).send({ message: "Server error" });
+  } finally {
+    await db.client.close();
+  }
+});
+
+app.post("/services/getstudentrewards", async (req, res) => {
+  const db = new mongocon();
+  const { sid } = req.body;
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const studCollection = database.collection("Student_Master");
+
+    const stud = await studCollection.findOne({ _id: parseInt(sid)}, { projection: { total_rewards: 1 } });
+
+    if (!stud) {
+      return res.status(404).send({ message: "Record not found" });
+    }
+
+    res.status(200).send({ values: stud });
+
+  } catch (error) {
+    console.error("Error fetching rewards:", error);
+    res.status(500).send({ message: "Server error" });
+  } finally {
+    await db.client.close();
+  }
+});
+app.post("/services/updatereward", async (req, res) => {
+  const db = new mongocon();
+  const { sid, course_points } = req.body;
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const studCollection = database.collection("Student_Master");
+
+    const student = await studCollection.findOne({ _id: parseInt(sid) });
+
+    if (!student) {
+      return res.status(404).send({ message: "Student record not found" });
+    }
+
+    const currentRewards = student.total_rewards || 0;
+    const pointsToSubtract = parseInt(course_points);
+
+    if (isNaN(pointsToSubtract)) {
+      return res.status(400).send({ message: "Invalid course_points provided" });
+    }
+
+    const newRewards = currentRewards - pointsToSubtract;
+
+    if (newRewards < 0) {
+      return res.status(400).send({ message: "Insufficient reward points" });
+    }
+
+    const updateResult = await studCollection.updateOne(
+      { _id: parseInt(sid) },
+      { $set: { total_rewards: newRewards } }
+    );
+
+    if (updateResult.modifiedCount === 1) {
+      const updatedStudent = await studCollection.findOne({ _id: parseInt(sid)}, { projection: { total_rewards: 1 } });
+      return res.status(200).send({ values: updatedStudent });
+    } else {
+      return res.status(500).send({ message: "Failed to update reward points" });
+    }
+
+  } catch (error) {
+    console.error("Error updating rewards:", error);
+    res.status(500).send({ message: "Server error" });
+  } finally {
+    await db.client.close();
+  }
+});
 
 const isLeapYear = (year) => {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
@@ -1632,6 +2012,10 @@ app.post("/services/validateadminlogin", async (req, res) => {
     await db.client.connect();
     const database = db.client.db(db.dbname);
     const collection = database.collection("Admin_users");
+    const collection1 = database.collection("Staff_Master")
+    const collection2 = database.collection("Student_Master")
+    const staffCount = await collection1.countDocuments();
+    const studentCount = await collection2.countDocuments();
 
     const searchadminemail = await collection.findOne({ E_mail: email });
 
@@ -1647,8 +2031,12 @@ app.post("/services/validateadminlogin", async (req, res) => {
             Message: "OTP Sent Successfully",
             OTP: result.otp,
             _id: searchadminemail["_id"],
+            Staff_name : searchadminemail["Staff_name"],
             profile_pic: searchadminemail["isprofilepic"],
             college: searchadminemail["College_id"],
+            subjecct : staffCount["Subject"],
+            student : studentCount,
+            staff : staffCount
           });
         })
         .catch((error) => {
@@ -1663,6 +2051,7 @@ app.post("/services/validateadminlogin", async (req, res) => {
   }
 });
 app.use("/profilepics", express.static(path.join(__dirname, "uploads")));
+app.use("/course_documents", express.static(path.join(__dirname, "uploads/course_documents")));
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -1671,6 +2060,18 @@ const storage = multer.diskStorage({
       fs.mkdirSync(uploadPath);
     }
     cb(null, uploadPath); // Save the file in the uploads folder
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+const coursedoc = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, "uploads/course_documents");
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
     cb(null, file.originalname);
@@ -1882,13 +2283,14 @@ app.post("/services/addholidays", async (req, res) => {
 
     const holidayInsertions = [];
 
-    for (const { name, date } of holidays) {
+    for (const { name, date, recurring } of holidays) {
       if (!name || !date) {
         return res.status(400).json({
           message: "Holiday name and date are required for each holiday",
         });
       }
 
+      // Date is in DD/MM/YYYY format
       const [day, month, year] = date.split("/").map(Number);
       const parsedDate = new Date(year, month - 1, day);
 
@@ -1898,9 +2300,11 @@ app.post("/services/addholidays", async (req, res) => {
           .json({ message: `Invalid date for holiday: ${name}` });
       }
 
+      // Check if a holiday with the same date already exists
       const existingHoliday = await collection.findOne({ date: parsedDate });
+
       if (!existingHoliday) {
-        holidayInsertions.push({ name, date: parsedDate });
+        holidayInsertions.push({ name, date: parsedDate || false }); 
       }
     }
 
@@ -1931,12 +2335,23 @@ app.post("/services/getholidays", async (req, res) => {
 
     const holidays = await collection.find({}).toArray();
 
-    const formattedHolidays = holidays.map((holiday) => ({
-      name: holiday.name,
-      date: `${String(holiday.date.getDate()).padStart(2, "0")}/${String(
-        holiday.date.getMonth() + 1
-      ).padStart(2, "0")}/${holiday.date.getFullYear()}`,
-    }));
+    
+    const formattedHolidays = holidays.map((holiday) => {
+      if (holiday.date instanceof Date && !isNaN(holiday.date)) {
+        return {
+          name: holiday.name,
+          date: `${String(holiday.date.getDate()).padStart(2, "0")}/${String(
+            holiday.date.getMonth() + 1
+          ).padStart(2, "0")}/${holiday.date.getFullYear()}`,
+        };
+      } else {
+        
+        return {
+          name: holiday.name,
+          date: "Invalid Date", 
+        };
+      }
+    });
 
     res.status(200).json(formattedHolidays);
   } catch (error) {
@@ -2154,22 +2569,23 @@ app.post("/services/get-mcqs", async (req, res) => {
         college_id: college_id
       };
 
-      const questions = await collection.find(query).toArray();
-      console.log(questions)
+      const latestQuestionBank = await collection.findOne(query, {
+        sort: { createdAt: -1 } // Sort by createdAt in descending order (latest first)
+      });
 
-      if (questions.length === 0) {
-        return res.status(200).json({ error: "No questions found for the provided class, section, and college_id" });
+      if (!latestQuestionBank) {
+        return res.status(200).json({ questions: [] }); // Return an empty array if no question bank found
       }
 
-      res.status(200).send({ questions });
+      res.status(200).send({ questions: [latestQuestionBank] }); // Send the latest question bank in the 'questions' array
     } catch (error) {
-      console.error("Error fetching documents:", error);
-      res.status(500).json({ error: "Error fetching questions from database", details: error.message });
+      console.error("Error fetching latest document:", error);
+      res.status(500).json({ error: "Error fetching latest questions from database", details: error.message });
     } finally {
       await db.client.close();
     }
   } catch (error) {
-    res.status(500).json({ error: "Error retrieving MCQs", details: error.message });
+    res.status(500).json({ error: "Error retrieving latest MCQs", details: error.message });
   }
 });
 app.post("/services/addsubject", async (req, res) => {
@@ -2334,61 +2750,10 @@ app.post("/services/getTimeTable", async (req, res) => {
 });
 
 app.post("/services/addleaveforstud", async (req, res) => {
-  const { facultyName, reason, startDate, endDate, college_id } = req.body;
+  const { sid, reason, startDate, endDate, college_id } = req.body;
 
   // Validate required fields
-  if (!facultyName || !reason || !startDate || !endDate || !college_id) {
-    return res.status(400).json({ message: "All fields are required" });
-  }
-
-  try {
-    const db = new mongocon(); // Initialize MongoDB connection
-    await db.client.connect(); // Connect to the database
-    const database = db.client.db(db.dbname);
-    const collection = database.collection("Leave_Requests");
-
-    // Create the document to insert
-    const newLeave = {
-      sid: facultyName,
-      reason: reason,
-      startDate: new Date(startDate), 
-      endDate: new Date(endDate), 
-      submissionDate: new Date(), 
-      college_id: college_id,
-    };
-
-    // Insert the document into the collection
-    const result = await collection.insertOne(newLeave);
-
-    // Check if the insertion was successful
-    if (result.acknowledged) {
-      res.status(201).json({
-        message: "Leave request added successfully",
-        data: {
-          _id: result.insertedId, // Include the inserted document's ID
-          ...newLeave, // Spread the newLeave object to include all fields
-        },
-      });
-    } else {
-      res.status(500).json({ message: "Failed to add leave request: Insertion not acknowledged" });
-    }
-  } catch (error) {
-    console.error("Error adding leave request:", error);
-    res.status(500).json({ message: "Failed to add leave request", error: error.message });
-  } finally {
-    // Close the database connection
-    if (db && db.client) {
-      await db.client.close();
-    }
-  }
-});
-
-
-app.post("/services/addleaveforstaff", async (req, res) => {
-  const { tid, reason, startDate, endDate, college_id } = req.body;
-
-  
-  if (!tid || !reason || !startDate || !endDate || !college_id) {
+  if ( !reason || !startDate || !endDate || !college_id) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
@@ -2397,18 +2762,18 @@ app.post("/services/addleaveforstaff", async (req, res) => {
     await db.client.connect(); // Connect to the database
     const database = db.client.db(db.dbname);
     const collection = database.collection("Leave_Request");
-   genid();
+    genid();
     // Create the document to insert
     const newLeave = {
-      lid: uid,
-      tid: tid,
+      lid : uid,
+      sid: sid,
       reason: reason,
       startDate: new Date(startDate), 
       endDate: new Date(endDate), 
       submissionDate: new Date(), 
+      status: "pending",
+      type : "Student",
       college_id: college_id,
-      status : "pending",
-      type : "Faculty"
     };
 
     // Insert the document into the collection
@@ -2430,6 +2795,97 @@ app.post("/services/addleaveforstaff", async (req, res) => {
     console.error("Error adding leave request:", error);
     res.status(500).json({ message: "Failed to add leave request", error: error.message });
   } 
+});
+
+
+app.post("/services/addleaveforstaff", async (req, res) => {
+  const { to_date, from_date, reason, college_id, sid } = req.body;
+
+  try {
+    const db = new mongocon();
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const collection = database.collection("Leave_Request");
+
+    if (
+      !sid ||
+      !from_date ||
+      !to_date ||
+      !reason ||
+      !college_id
+    ) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Convert from_date and to_date from ISO format to Date objects
+    const fromDateObject = new Date(from_date);
+    const toDateObject = new Date(to_date);
+
+    if (isNaN(fromDateObject.getTime()) || isNaN(toDateObject.getTime())) {
+      return res.status(400).json({ message: "Invalid date format." });
+    }
+
+    // Check if a leave request for the same date range already exists
+    const existingLeaveRequest = await collection.findOne({
+      sid: parseInt(sid), // Parse sid to integer for database query
+      $or: [
+        {
+          from_date: { $lte: toDateObject },
+          to_date: { $gte: fromDateObject },
+        },
+        {
+          from_date: { $gte: fromDateObject, $lte: toDateObject },
+        },
+        {
+          to_date: { $gte: fromDateObject, $lte: toDateObject },
+        },
+      ],
+    });
+
+    if (existingLeaveRequest) {
+      return res.status(409).json({
+        message:
+          "Leave request cannot be added as a leave request for the same date range is already there.",
+      });
+    }
+
+     genid(); // Generate a unique ID for the leave request
+
+    // Insert the new leave request into the database
+    const result = await collection.insertOne({
+      lid: uid,
+      sid: parseInt(sid), // Parse sid to integer for database insertion
+      from_date: fromDateObject,
+      to_date: toDateObject,
+      reason: reason,
+      college_id: parseInt(college_id), // Parse college_id to integer for database insertion
+      status: "Pending",
+      type: "Faculty",
+    });
+
+    if (result.acknowledged === true) {
+      const formattedFromDate = formatDate(fromDateObject);
+      const formattedToDate = formatDate(toDateObject);
+
+      res.status(201).json({
+        message: "Leave request added successfully",
+        data: {
+          _id: result.insertedId,
+          lid: uid,
+          from_date: formattedFromDate,
+          to_date: formattedToDate,
+          reason: reason,
+          college_id: parseInt(college_id), // Parse college_id to integer for response
+          status: "Pending",
+        },
+      });
+    } else {
+      res.status(500).json({ message: "Error while adding the leave request" });
+    }
+  } catch (error) {
+    console.error("Error adding leave request:", error);
+    res.status(500).json({ message: "Failed to add leave request", error });
+  }
 });
 app.post("/services/getzoomstudents", async (req, res) => {
   const { college_id, cid, section_id } = req.body;
@@ -2469,7 +2925,7 @@ app.post("/services/getzoomstudents", async (req, res) => {
 
 
 app.post("/services/addleaverequest", async (req, res) => {
-  const { from_date, to_date, reason, college_id, sid } = req.body;
+  const { to_date, from_date, reason, college_id, sid } = req.body;
 
   try {
     const db = new mongocon();
@@ -2570,7 +3026,7 @@ function formatDate(date) {
 }
 
 app.post("/services/getleaverequest", async (req, res) => {
-  const { college_id, } = req.body;
+  const { college_id } = req.body;
 
   if (!college_id) {
     return res.status(400).json({ message: "college_id is required" });
@@ -2610,7 +3066,7 @@ app.post("/services/getleaverequest", async (req, res) => {
         } else if (leaveRequest.type === "Faculty" && leaveRequest.tid) {
           console.log("Searching Staff:", leaveRequest.tid);
           const staff = await staffCollection.findOne({
-            _id: leaveRequest.tid,
+            _id: leaveRequest.sid,
             college_id: parseInt(college_id),
           });
           console.log("Staff Result:", staff);
@@ -2653,7 +3109,7 @@ app.post("/services/getfacultyleaverequest", async (req, res) => {
     const studentCollection = database.collection("Student_Master");
     const staffCollection = database.collection("Staff_Master");
 
-    let query = { college_id: parseInt(college_id) };
+    let query = { college_id: parseInt(college_id),type : "Student" };
     let staff;
 
     const leaveRequests = await leaveCollection.find(query).toArray();
@@ -2823,41 +3279,238 @@ function formatDatel(dateString) {
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 }
-
 app.post("/services/updateLoyaltyPoints", async (req, res) => {
-  const { studentId, loyaltyPointsEarned,college_id} = req.body;
+  const { studentId, loyaltyPointsEarned, question_bank_id, subject_name } = req.body;
+  const completionDate = new Date();
 
-  
-
-  
-    try {
-      const db = new mongocon();
+  try {
+    const db = new mongocon();
     await db.client.connect();
-       const database = db.client.db(db.dbname);
-      const collection = database.collection("Student_Master");
+    const database = db.client.db(db.dbname);
+    const collection = database.collection("Student_Master");
 
-      
-      const filter = { _id: studentId };
+    const filter = { _id: parseInt(studentId) };
 
-      
-      const updateDoc = {
-        $inc: { "total_rewards": loyaltyPointsEarned },
-      };
-
-      const result = await collection.updateOne(filter, updateDoc);
-
-      if (result.acknowledged && result.modifiedCount > 0) {
-        return res.status(200).json({ success: true, message: 'Loyalty points updated successfully', result: result });
-      } else {
-        return res.status(404).json({ success: false, message: 'Student not found or no update performed', result: result });
+    const updateDoc = {
+      $inc: { "total_rewards": loyaltyPointsEarned },
+      $push: {
+        question_banks: {
+          subject_name: subject_name,
+          qb_b_id: question_bank_id,
+          completion_date: completionDate,
+          points : loyaltyPointsEarned
+        }
       }
-    } catch (error) {
-      console.error("Error updating loyalty points:", error);
-      return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
-    } 
-  
+    };
+
+    const result = await collection.updateOne(filter, updateDoc);
+
+    if (result.acknowledged && result.modifiedCount > 0) {
+      return res.status(200).json({ success: true, message: 'Loyalty points updated successfully', result: result });
+    } else {
+      return res.status(404).json({ success: false, message: 'Student not found or no update performed', result: result });
+    }
+  } catch (error) {
+    console.error("Error updating loyalty points:", error);
+    return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  } 
 });
 
+const uploadCourseDocument = multer({ storage: coursedoc });
+
+app.post('/services/upload-course-document', uploadCourseDocument.single('courseDocument'), async (req, res) => {
+  const { crsid, addedby, Class, Section, youtube_link, pointsreq, description, category, level } = req.body;
+
+  const db = new mongocon();
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const courseCollection = database.collection("Course_Master");
+
+    const courseDocument = {
+      crsid,
+      addedby,
+      Class,
+      Section,
+      youtube_link,
+      pointsreq: parseInt(pointsreq),
+      createdAt: new Date(),
+      description,
+      level,
+      category,
+    };
+
+    // Handle document upload and set documenturl
+    if (req.file) {
+      courseDocument.documenturl = `/uploads/course_documents/${req.file.originalname}`;
+      courseDocument.document = req.file.originalname; // Store original filename
+    } else {
+      courseDocument.document = "No Document";
+    }
+
+
+    await courseCollection.insertOne(courseDocument);
+    res.status(201).send('Data saved successfully.');
+  } catch (error) {
+    console.error('Error saving data:', error);
+    res.status(500).send('Error saving data: ' + error.message);
+  } finally {
+    if (db.client) {
+      await db.client.close();
+    }
+  }
+});
+
+
+app.post('/services/get-all-course-details', async (req, res) => {
+  const db = new mongocon();
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const courseCollection = database.collection("Course_Master");
+
+    const courseDetails = await courseCollection.find({}).toArray();
+
+    if (courseDetails.length > 0) {
+      res.status(200).json(courseDetails);
+    } else {
+      res.status(404).send('No course details found.');
+    }
+  } catch (error) {
+    console.error('Error getting course details:', error);
+    res.status(500).send('Error getting course details: ' + error.message);
+  } finally {
+    if (db.client) {
+      await db.client.close();
+    }
+  }
+});
+app.post('/services/get-all-course-forstudent', async (req, res) => {
+  const db = new mongocon();
+  const{Class,section,sid} = req.body;
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const courseCollection = database.collection("Course_Master");
+
+    const courseDetails = await courseCollection.find({Class : Class,Section:section}).toArray();
+
+    if (courseDetails.length > 0) {
+      res.status(200).json(courseDetails);
+    } else {
+      res.status(404).send('No course details found.');
+    }
+  } catch (error) {
+    console.error('Error getting course details:', error);
+    res.status(500).send('Error getting course details: ' + error.message);
+  } finally {
+    if (db.client) {
+      await db.client.close();
+    }
+  }
+});
+
+app.post('/services/enrollcourse', async (req, res) => {
+  const db = new mongocon();
+  const { student_id, crid } = req.body;
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const courseCollection = database.collection("Course_Master");
+    const studentCollection = database.collection("Student_Master");
+
+    const courseDetails = await courseCollection.findOne({ _id: new ObjectId(crid) });
+
+    if (courseDetails) {
+      const courseName = courseDetails._id;
+
+      const updateResult = await studentCollection.updateOne(
+        { _id: parseInt(student_id) },
+        { $push: { Courses: courseName} }
+      );
+
+      if (updateResult.modifiedCount > 0) {
+        res.status(200).send('Course enrolled successfully.');
+      } else {
+        res.status(404).send('Student not found or course already enrolled.');
+      }
+    } else {
+      res.status(404).send('No course details found.');
+    }
+  } catch (error) {
+    console.error('Error enrolling in course:', error);
+    res.status(500).send('Error enrolling in course: ' + error.message);
+  } finally {
+    if (db.client) {
+      await db.client.close();
+    }
+  }
+});
+
+app.post('/services/get-course-details-by-id', async (req, res) => {
+  const db = new mongocon();
+  const{courseId} =req.body
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const courseCollection = database.collection("Course_Master");
+
+    const courseDetails = await courseCollection.find({_id : new ObjectId(courseId) }).toArray();
+
+    if (courseDetails.length > 0) {
+      res.status(200).json(courseDetails);
+    } else {
+      res.status(404).send('No course details found.');
+    }
+  } catch (error) {
+    console.error('Error getting course details:', error);
+    res.status(500).send('Error getting course details: ' + error.message);
+  } finally {
+    if (db.client) {
+      await db.client.close();
+    }
+  }
+});
+
+app.post('/services/delete-course-by-id', async (req, res) => {
+  const db = new mongocon();
+  const { courseId } = req.body;
+
+  try {
+    await db.client.connect();
+    const database = db.client.db(db.dbname);
+    const courseCollection = database.collection('Course_Master');
+
+    // Check if the course exists
+    const course = await courseCollection.findOne({ _id: new ObjectId(courseId) });
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Delete the course
+    const result = await courseCollection.deleteOne({ _id: new ObjectId(courseId) });
+
+    if (result.deletedCount === 1) {
+      res.status(200).json({ message: 'Course deleted successfully' });
+    } else {
+      res.status(500).json({ message: 'Failed to delete course' }); // In case of unexpected behavior
+    }
+
+  } catch (error) {
+    console.error('Error deleting course:', error);
+    res.status(500).send('Error deleting course: ' + error.message);
+  } finally {
+    if (db.client) {
+      await db.client.close();
+    }
+  }
+});
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });

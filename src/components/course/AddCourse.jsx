@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import { styled } from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
 import Stepper from "@mui/material/Stepper";
@@ -13,11 +14,9 @@ import StepConnector, {
   stepConnectorClasses,
 } from "@mui/material/StepConnector";
 import { RiCopperCoinFill } from "react-icons/ri";
-
 import { HiDownload } from "react-icons/hi";
 import { IoVideocam } from "react-icons/io5";
 import { SiGoogleclassroom } from "react-icons/si";
-
 import dot from "@/assets/dots.png";
 import quizCard from "@/assets/le.jpg";
 import banner from "@/assets/add.png";
@@ -32,7 +31,6 @@ import { useDropzone } from "react-dropzone";
 import Button from "@mui/material/Button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { IoVideocamOutline } from "react-icons/io5";
-
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -63,205 +61,6 @@ import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { python } from "@codemirror/lang-python";
 import CodeMirror from "@uiw/react-codemirror";
-
-export function Editor() {
-  const [code, setCode] = useState({
-    html: "",
-    css: "",
-    javascript: "",
-    python: "",
-  });
-  const [selectedLanguage, setSelectedLanguage] = useState("javascript"); // Default language
-  const [pythonOutput, setPythonOutput] = useState("");
-  const [isPyodideReady, setIsPyodideReady] = useState(false);
-  const iframeRef = useRef(null);
-
-  // Load Pyodide on mount
-  useEffect(() => {
-    const loadPyodide = async () => {
-      if (!window.loadPyodide) {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js";
-        script.onload = async () => {
-          await window.loadPyodide();
-          setIsPyodideReady(true);
-        };
-        document.body.appendChild(script);
-      } else {
-        setIsPyodideReady(true);
-      }
-    };
-    loadPyodide();
-  }, []);
-
-  // Language extensions
-  const languageExtensions = {
-    javascript: javascript({ jsx: true }),
-    html: html(),
-    css: css(),
-    python: python(),
-  };
-
-  // Handle code changes
-  const onChangeCode = useCallback(
-    (value) => {
-      setCode((prevCode) => ({
-        ...prevCode,
-        [selectedLanguage]: value,
-      }));
-    },
-    [selectedLanguage]
-  );
-
-  // Update iframe content for HTML, CSS, and JavaScript
-  useEffect(() => {
-    if (
-      selectedLanguage === "html" ||
-      selectedLanguage === "css" ||
-      selectedLanguage === "javascript"
-    ) {
-      const iframe = iframeRef.current;
-      const document = iframe.contentDocument || iframe.contentWindow.document;
-      document.open();
-      document.write(`
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <style>${code.css}</style>
-          </head>
-          <body>
-            ${code.html}
-            <script>${code.javascript}<\/script>
-          </body>
-        </html>
-      `);
-      document.close();
-    }
-  }, [code.html, code.css, code.javascript]);
-
-  // Execute Python code
-  const executePythonCode = async () => {
-    if (!isPyodideReady) {
-      setPythonOutput("Pyodide is still loading. Please wait...");
-      return;
-    }
-    if (!code.python.trim()) {
-      setPythonOutput("Please write some Python code to execute.");
-      return;
-    }
-    try {
-      setPythonOutput("Running...");
-      const pyodide = await window.loadPyodide();
-      pyodide.runPython(`
-        import sys
-        from io import StringIO
-        
-        output_buffer = StringIO()
-        sys.stdout = output_buffer
-        sys.stderr = output_buffer
-      `);
-      pyodide.runPython(code.python);
-      const output = pyodide.runPython("output_buffer.getvalue()");
-      setPythonOutput(output || "No output from Python code");
-    } catch (err) {
-      setPythonOutput(`Error: ${err.message}`);
-    }
-  };
-
-  // Handle file selection and read content
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setCode((prevCode) => ({
-          ...prevCode,
-          [selectedLanguage]: e.target.result,
-        }));
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  return (
-    <div className="p-4 text-black">
-      <h1 className="text-2xl font-semibold mb-4">
-        Multi-Language Code Editor
-      </h1>
-
-      <div className="flex gap-4 mb-4">
-        {/* Language Selection Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <button className="p-2 bg-blue-500 text-white rounded">
-              Select Language: {selectedLanguage.toUpperCase()}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-white border rounded shadow-lg">
-            {Object.keys(languageExtensions).map((lang) => (
-              <DropdownMenuItem
-                key={lang}
-                onClick={() => setSelectedLanguage(lang)}
-                className="cursor-pointer p-2 hover:bg-gray-200"
-              >
-                {lang.toUpperCase()}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* File Input */}
-      <div className="mb-4">
-        <input
-          type="file"
-          accept=".js,.html,.css,.py"
-          onChange={handleFileChange}
-          className="p-2 border rounded"
-        />
-      </div>
-
-      {/* Code Editor */}
-      <div className="mt-4">
-        <h2 className="text-lg font-semibold mb-2">
-          {selectedLanguage.toUpperCase()} Editor
-        </h2>
-        <CodeMirror
-          value={code[selectedLanguage]}
-          height="300px"
-          theme="dark"
-          extensions={[languageExtensions[selectedLanguage]]}
-          onChange={onChangeCode}
-        />
-      </div>
-
-      {/* Output Section */}
-      {selectedLanguage === "python" ? (
-        <div className="mt-4">
-          <button
-            onClick={executePythonCode}
-            className="p-2 bg-purple-500 text-white rounded"
-          >
-            Run Python Code
-          </button>
-          <div className="mt-2 p-4 bg-gray-800 text-white rounded">
-            <h2 className="font-semibold">Output:</h2>
-            <pre>{pythonOutput}</pre>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold mb-2">Live Output</h2>
-          <iframe
-            ref={iframeRef}
-            title="Live Output"
-            className="w-full h-64 border border-gray-300 rounded"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
 
 const QontoConnector = styled(StepConnector)(({ theme }) => ({
   [`&.${stepConnectorClasses.alternativeLabel}`]: {
@@ -318,45 +117,130 @@ function QontoStepIcon(props) {
   );
 }
 
-const steps = ["Course Details", "Course Manage & Reword"];
+const steps = ["Course Details", "Course Manage & Reward"];
 
 export default function CustomizedSteppers() {
   const [activeStep, setActiveStep] = useState(0);
   const [videos, setVideos] = useState([]);
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [selectedSections, setSelectedSections] = useState([]);
-  const [dropdownItems, setDropdownItems] = useState([50, 100]); // Default items
-  const [inputValue, setInputValue] = useState(""); // Input field value
-  const [showInput, setShowInput] = useState(false); // Toggle for textbox and button
+  const [dropdownItems, setDropdownItems] = useState([50, 100]);
+  const [inputValue, setInputValue] = useState("");
+  const [showInput, setShowInput] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState("");
+  const [apiClasses, setApiClasses] = useState([]);
+  const [apiSections, setApiSections] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [courseTitle, setCourseTitle] = useState('');
+  const [courseDescription, setCourseDescription] = useState('');
+  const [courseCategory, setCourseCategory] = useState('');
+  const [courseLevel, setCourseLevel] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState({ type: '', text: '' });
+  const [errors, setErrors] = useState({
+    courseTitle: '',
+    courseDescription: '',
+    courseCategory: '',
+    courseLevel: '',
+    classes: '',
+    sections: '',
+    rewardPoints: ''
+  });
+  const navigate = useNavigate();
+
+  // Validation functions
+  const validateStep1 = () => {
+    const newErrors = {
+      courseTitle: !courseTitle ? 'Course title is required' : '',
+      courseDescription: !courseDescription ? 'Course description is required' : '',
+      courseCategory: !courseCategory ? 'Category is required' : '',
+      courseLevel: !courseLevel ? 'Level is required' : ''
+    };
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error);
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {
+      ...errors,
+      classes: selectedClasses.length === 0 ? 'At least one class must be selected' : '',
+      sections: selectedSections.length === 0 ? 'At least one section must be selected' : '',
+      rewardPoints: !selectedPoint ? 'Reward points must be selected' : ''
+    };
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error);
+  };
+
+  // Fetch classes and sections from API
+  useEffect(() => {
+    const fetchClassesAndSections = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("http://localhost:5472/services/getclassarray", {
+          method: "POST"
+        });
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          const classes = data.map(item => item.Class);
+          setApiClasses(classes);
+          
+          const allSections = data.flatMap(item => 
+            item.Sections.map(section => section.Section)
+          );
+          const uniqueSections = [...new Set(allSections)];
+          setApiSections(uniqueSections);
+        }
+      } catch (error) {
+        console.error("Error fetching classes and sections:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClassesAndSections();
+  }, []);
+
+  const allClasses = [...new Set([...apiClasses])];
+  const allSections = [...new Set([...apiSections])];
 
   const handleAddItem = () => {
     const number = parseInt(inputValue, 10);
-    if (!isNaN(number) && !dropdownItems.includes(number)) {
-      setDropdownItems((prevItems) => [...prevItems, number]); // Add new number to dropdown
-      setInputValue(""); // Clear input
-      setShowInput(false); // Hide input after adding
+    if (!isNaN(number) && number > 0 && !dropdownItems.includes(number)) {
+      setDropdownItems((prevItems) => [...prevItems, number].sort((a, b) => a - b));
+      setInputValue("");
+      setShowInput(false);
+      setErrors({...errors, rewardPoints: ''});
+    } else {
+      setErrors({...errors, rewardPoints: 'Please enter a valid positive number'});
     }
   };
+
   const handleSelectItem = (item) => {
-    setSelectedPoint(item); // Update selected point
+    setSelectedPoint(item);
+    setErrors({...errors, rewardPoints: ''});
   };
-  const classes = ["FY", "SY", "TY"];
-  const sections = ["A", "B", "C", "D", "E"];
 
   const toggleClass = (cls) => {
-    setSelectedClasses((prev) =>
-      prev.includes(cls) ? prev.filter((c) => c !== cls) : [...prev, cls]
-    );
+    setSelectedClasses((prev) => {
+      const newClasses = prev.includes(cls) 
+        ? prev.filter((c) => c !== cls) 
+        : [...prev, cls];
+      setErrors({...errors, classes: newClasses.length === 0 ? 'At least one class must be selected' : ''});
+      return newClasses;
+    });
   };
 
   const toggleSection = (section) => {
-    setSelectedSections((prev) =>
-      prev.includes(section)
+    setSelectedSections((prev) => {
+      const newSections = prev.includes(section)
         ? prev.filter((s) => s !== section)
-        : [...prev, section]
-    );
+        : [...prev, section];
+      setErrors({...errors, sections: newSections.length === 0 ? 'At least one section must be selected' : ''});
+      return newSections;
+    });
   };
+
   const formatFileVideoSize = (size) => {
     if (size < 1024) return `${size} bytes`;
     else if (size < 1048576) return `${(size / 1024).toFixed(2)} KB`;
@@ -366,7 +250,6 @@ export default function CustomizedSteppers() {
   const handleFileVideoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Initialize video object with file details and progress
       const newVideo = {
         name: file.name,
         size: file.size,
@@ -376,7 +259,6 @@ export default function CustomizedSteppers() {
 
       setVideos((prevVideos) => [...prevVideos, newVideo]);
 
-      // Simulate file upload progress (Replace with your actual upload logic)
       const interval = setInterval(() => {
         setVideos((prevVideos) =>
           prevVideos.map((video) =>
@@ -396,7 +278,11 @@ export default function CustomizedSteppers() {
   const handleRemoveVideoFile = (index) => {
     setVideos(videos.filter((_, i) => i !== index));
   };
+
   const handleNext = () => {
+    if (activeStep === 0 && !validateStep1()) return;
+    if (activeStep === 1 && !validateStep2()) return;
+    
     if (activeStep < steps.length - 1) {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
     }
@@ -419,45 +305,45 @@ export default function CustomizedSteppers() {
   const handleRemoveFile = (index) => {
     setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   };
+
   const handleFileUpload = (e) => {
     const uploadedFiles = Array.from(e.target.files).map((file) => ({
       file,
       name: file.name,
-      progress: 0, // Initialize progress
+      progress: 0,
       size: file.size,
       preview: URL.createObjectURL(file),
     }));
 
     setFiles((prevFiles) => [...prevFiles, ...uploadedFiles]);
 
-    // Start progress for each uploaded file
     uploadedFiles.forEach((file, index) => {
-      const fileIndex = files.length + index; // Get the index in the final array
+      const fileIndex = files.length + index;
       const interval = setInterval(() => {
         setFiles((prevFiles) => {
           const updatedFiles = [...prevFiles];
           const currentFile = updatedFiles[fileIndex];
           if (currentFile.progress < 100) {
-            currentFile.progress += 2; // Increment by 2% every 100ms
+            currentFile.progress += 2;
           } else {
-            clearInterval(interval); // Stop when progress reaches 100%
+            clearInterval(interval);
           }
           return updatedFiles;
         });
       }, 100);
     });
   };
-  // Handle file drag-and-drop
+
   const handleFileDrop = (e) => {
     e.preventDefault();
     const droppedFiles = Array.from(e.dataTransfer.files);
     setFiles((prevFiles) => [...prevFiles, ...droppedFiles]);
   };
 
-  // Prevent the default behavior of the drop (opening the file)
   const handleDragOver = (e) => {
     e.preventDefault();
   };
+
   const [textareaValue, setTextareaValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -482,6 +368,7 @@ export default function CustomizedSteppers() {
       }
     }, 50);
   };
+
   useEffect(() => {
     if (activeStep === 1) {
       handleTypewriting();
@@ -492,7 +379,6 @@ export default function CustomizedSteppers() {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoList, setVideoList] = useState([]);
 
-  // Function to extract YouTube video ID
   const extractVideoId = (url) => {
     const regex =
       /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
@@ -504,7 +390,7 @@ export default function CustomizedSteppers() {
     const videoId = extractVideoId(videoUrl);
     if (videoId) {
       setVideoList((prevList) => [...prevList, videoId]);
-      setVideoUrl(""); // Clear input after adding
+      setVideoUrl("");
     } else {
       alert("Invalid YouTube URL");
     }
@@ -513,6 +399,71 @@ export default function CustomizedSteppers() {
   const handleRemoveVideo = (index) => {
     setVideoList((prevList) => prevList.filter((_, i) => i !== index));
   };
+
+  const handleSubmitCourse = async () => {
+    if (!validateStep2()) return;
+    
+    setIsSubmitting(true);
+    setSubmitMessage({ type: '', text: '' });
+
+    try {
+      const formData = new FormData();
+      
+      // Add basic course info
+      formData.append('crsid', courseTitle);
+      formData.append('description', courseDescription);
+      formData.append('category', courseCategory);
+      formData.append('level', courseLevel);
+      
+      // Add selected classes and sections
+      formData.append('Class', selectedClasses.join(','));
+      formData.append('Section', selectedSections.join(','));
+      
+      // Add reward points
+      formData.append('pointsreq', selectedPoint);
+      
+      
+      files.forEach((file) => {
+        formData.append('courseDocument', file.file);
+      });
+      
+      // Add YouTube links (filter out empty ones)
+      videoList.forEach((videoId) => {
+        formData.append('youtube_link', `https://www.youtube.com/watch?v=${videoId}`);
+      });
+
+      const response = await fetch("http://localhost:5472/services/upload-course-document", {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload course');
+      }
+
+      setSubmitMessage({ type: 'success', text: 'Course uploaded successfully!' });
+      
+      // Reset form
+      setCourseTitle('');
+      setCourseDescription('');
+      setCourseCategory('');
+      setCourseLevel('');
+      setSelectedClasses([]);
+      setSelectedSections([]);
+      setSelectedPoint('');
+      setFiles([]);
+      setVideoList([]);
+      setActiveStep(0);
+      navigate("/course")
+      
+    } catch (error) {
+      console.error('Error uploading course:', error);
+      setSubmitMessage({ type: 'error', text: error.message || 'Error uploading course' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const items = [
     {
       id: "1",
@@ -609,11 +560,8 @@ export default function CustomizedSteppers() {
                         />
                       </div>
                     </div>
-                    {/* Progress Bar */}
-
                     {file.progress < 100 ? (
                       <>
-                        {/* Progress Bar */}
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
                           <motion.div
                             className={`h-2.5 rounded-full ${
@@ -636,7 +584,6 @@ export default function CustomizedSteppers() {
                       </>
                     ) : (
                       <div className="flex justify-between mt-1">
-                        {/* View Button */}
                         <Button
                           href={file.preview}
                           target="_blank"
@@ -776,156 +723,8 @@ export default function CustomizedSteppers() {
         </>
       ),
     },
-    {
-      id: "3",
-      icon: FaCode,
-      title: "Code Snippet",
-      sub: "Add your code snippet here",
-      content: (
-        <>
-          <Editor />
-        </>
-      ),
-    },
-    {
-      id: "4",
-      icon: IoVideocamOutline,
-      title: "Videos ",
-      sub: " Add your video here",
-      content: (
-        <>
-          <div className="bg-white py-5 px-5 rounded-sm w-full flex items-center justify-around flex-wrap">
-            <div className="">
-              <div className="bg-[#f2f7ff] py-14 px-10 rounded-sm border-2 border-dashed border-blue-500 flex items-center flex-col justify-center w-full sm:w-96">
-                <div className="flex items-center justify-center pb-5 "></div>
-                <Input
-                  id="videoFile"
-                  type="file"
-                  accept="video/mp4, video/webm, video/ogg"
-                  className="bg-[#116752] text-gray-400 rounded-full cursor-pointer"
-                  onChange={handleFileVideoUpload}
-                  style={{ display: "none" }}
-                />
-                <label
-                  htmlFor="videoFile"
-                  className="custom-file-upload text-gray-400 flex items-center flex-col cursor-pointer"
-                >
-                  <span>
-                    <IoCloudUploadOutline className="cursor-pointer text-gray-700" />
-                  </span>
-                  <span className="text-gray-600 cursor-pointer">
-                    Browse File
-                  </span>
-                </label>
-              </div>
-              <div className="pt-3">
-                <p className="text-sm text-gray-500">
-                  Supported formats: MP4, WebM, OGG
-                </p>
-              </div>
-            </div>
-            <div className="w-96">
-              {videos.map((video, index) => (
-                <motion.div
-                  key={index}
-                  className="file-info bg-[#f3f5f7] py-5 px-4 my-3 rounded-sm flex flex-col border border-gray-200"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="flex items-center  w-full">
-                    <IoVideocam className="text-gray-700 w-6 h-6" />
-                    <div className="flex flex-col">
-                      <p className="text-gray-800 truncate ml-3">
-                        {video.name.replace(/\.[^/.]+$/, "")}
-                      </p>
-                      <div className="flex items-center">
-                        <span className="text-gray-500 text-[10px] pl-3">
-                          {video.name.toLowerCase().endsWith(".mp4")
-                            ? "MP4"
-                            : video.name.toLowerCase().endsWith(".webm") ||
-                              video.name.toLowerCase().endsWith(".ogg")
-                            ? "Webm"
-                            : "Unknown"}
-                        </span>
-                        <span className="text-gray-400 text-[10px] pl-3">
-                          {formatFileVideoSize(video.size)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-auto">
-                      {" "}
-                      <IoIosClose
-                        className="text-gray-500 w-6 h-6 cursor-pointer"
-                        onClick={() => handleRemoveVideoFile(index)}
-                      />
-                    </div>
-                  </div>
-                  {/* Progress Bar */}
-                  {video.progress < 100 ? (
-                    <>
-                      {/* Progress Bar */}
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
-                        <motion.div
-                          className={`h-2.5 rounded-full ${
-                            video.name.toLowerCase().endsWith(".mp4")
-                              ? "bg-gray-600"
-                              : video.name.toLowerCase().endsWith(".webm") ||
-                                video.name.toLowerCase().endsWith(".ogg")
-                              ? "bg-blue-500"
-                              : "bg-green-500"
-                          }`}
-                          initial={{ width: "0%" }}
-                          animate={{ width: `${video.progress}%` }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
-                        ></motion.div>
-                      </div>
-
-                      <div className="text-right text-gray-500 mt-1">
-                        {video.progress}%
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex justify-between mt-1">
-                      {/* View Button */}
-                      <Button
-                        href={video.preview}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600"
-                        style={{ textTransform: "none", color: "blue" }}
-                      >
-                        View
-                      </Button>
-
-                      <Button
-                        href={video.preview}
-                        download={video.name}
-                        style={{
-                          textTransform: "none",
-                          backgroundColor: "#0056d2",
-                          color: "white",
-                          borderRadius: "100px",
-                          paddingLeft: "15px",
-                          paddingRight: "15px",
-                        }}
-                      >
-                        <span className="flex items-center gap-1">
-                          {" "}
-                          Download <HiDownload />
-                        </span>
-                      </Button>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </>
-      ),
-    },
   ];
+
   return (
     <>
       <div className="bg-slate-100 p-5 rounded-md">
@@ -987,40 +786,72 @@ export default function CustomizedSteppers() {
             )}
             <div className="bg-slate-50 p-5 rounded-xl border border-slate-300 my-5 space-y-4 ">
               <div className="text-blue-900 ">
-                <Label htmlFor="title">Course Title</Label>
+                <Label htmlFor="title">Course Title *</Label>
                 <Input
                   type="title"
                   id="title"
                   placeholder="Ex. React Scratch Course"
-                  className="bg-[#e2e8f054] p-5"
+                  className={`bg-[#e2e8f054] p-5 ${errors.courseTitle ? 'border-red-500' : ''}`}
+                  value={courseTitle}
+                  onChange={(e) => {
+                    setCourseTitle(e.target.value);
+                    setErrors({...errors, courseTitle: ''});
+                  }}
                 />
+                {errors.courseTitle && (
+                  <p className="text-red-500 text-sm mt-1">{errors.courseTitle}</p>
+                )}
               </div>
 
               <div className="text-gray-700">
-                <Label htmlFor="description">Course Description</Label>
+                <Label htmlFor="description">Course Description *</Label>
                 <Textarea
                   placeholder="Type your message here."
-                  className="bg-[#e2e8f054]"
+                  className={`bg-[#e2e8f054] ${errors.courseDescription ? 'border-red-500' : ''}`}
+                  value={courseDescription}
+                  onChange={(e) => {
+                    setCourseDescription(e.target.value);
+                    setErrors({...errors, courseDescription: ''});
+                  }}
                 />
+                {errors.courseDescription && (
+                  <p className="text-red-500 text-sm mt-1">{errors.courseDescription}</p>
+                )}
               </div>
               <div className="flex justify-between space-x-4">
                 <div className="text-gray-700 w-1/2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">Category *</Label>
                   <Input
                     type="text"
                     id="category"
                     placeholder="Ex. Frontend"
-                    className="bg-[#e2e8f054] w-full"
+                    className={`bg-[#e2e8f054] w-full ${errors.courseCategory ? 'border-red-500' : ''}`}
+                    value={courseCategory}
+                    onChange={(e) => {
+                      setCourseCategory(e.target.value);
+                      setErrors({...errors, courseCategory: ''});
+                    }}
                   />
+                  {errors.courseCategory && (
+                    <p className="text-red-500 text-sm mt-1">{errors.courseCategory}</p>
+                  )}
                 </div>
                 <div className="text-gray-700 w-1/2">
-                  <Label htmlFor="level">Level</Label>
+                  <Label htmlFor="level">Level *</Label>
                   <Input
                     type="text"
                     id="level"
                     placeholder="Ex. Beginner"
-                    className="bg-[#e2e8f054] w-full"
+                    className={`bg-[#e2e8f054] w-full ${errors.courseLevel ? 'border-red-500' : ''}`}
+                    value={courseLevel}
+                    onChange={(e) => {
+                      setCourseLevel(e.target.value);
+                      setErrors({...errors, courseLevel: ''});
+                    }}
                   />
+                  {errors.courseLevel && (
+                    <p className="text-red-500 text-sm mt-1">{errors.courseLevel}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1100,82 +931,9 @@ export default function CustomizedSteppers() {
             <h1 className="text-gray-600 font-medium text-xl py-5">
               Course Manage
             </h1>
-
-            {/* <div className="p-4 max-w-md mx-auto space-y-4 bg-[#ffff] rounded-xl shadow-sm border border-gray-300">
-             
-
-              <div className="">
-                <label className="block text-sm font-medium text-gray-700">
-                  Select Classes
-                </label>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {classes.map((cls) => (
-                    <button
-                      key={cls}
-                      type="button"
-                      onClick={() => toggleClass(cls)}
-                      className={`px-4 py-2 rounded-full border ${
-                        selectedClasses.includes(cls)
-                          ? "bg-[#2b2b2b] text-gray-200 border-2 border-gray-600"
-                          : "bg-[#ececec] text-gray-700"
-                      }`}
-                    >
-                      {cls}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="">
-                {" "}
-              
-                {selectedClasses.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Select Sections
-                    </label>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
-                      {sections.map((section) => (
-                        <button
-                          key={section}
-                          type="button"
-                          onClick={() => toggleSection(section)}
-                          className={`px-4 py-2 rounded-md border ${
-                            selectedSections.includes(section)
-                              ? "bg-[#e8f5e8] text-gray-700 border-2 border-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {section}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="bg-[#dfeeff] p-4 rounded-t-2xl ">
-               
-                {(selectedClasses.length > 0 ||
-                  selectedSections.length > 0) && (
-                  <div>
-                    <h4 className="text-xs font-medium text-[#004fa9] bg-[#cbe3fc] w-fit px-2 py-1 rounded-full">
-                      Selected
-                    </h4>
-                    <p className="mt-1 text-[#004fa9]">
-                      Classes :{" "}
-                      <strong>{selectedClasses.sort().join(", ")}</strong>
-                    </p>
-                    <p className="mt-1 text-[#004fa9]">
-                      Sections :{" "}
-                      <strong>{selectedSections.sort().join(", ")}</strong>
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div> */}
             <div className="mb-14 flex items-center justify-around flex-wrap gap-10 mt-10">
               {" "}
               <div className="relative flex items-center space-x-4 ">
-                {/* Decorative Dots */}
                 <div className="absolute -top-6 -left-4">
                   <img
                     src={dot}
@@ -1184,7 +942,6 @@ export default function CustomizedSteppers() {
                   />
                 </div>
 
-                {/* Card */}
                 <div className="relative z-10">
                   <Card>
                     <CardHeader className="w-full sm:w-[450px] ">
@@ -1192,11 +949,17 @@ export default function CustomizedSteppers() {
                         <span>
                           <SiGoogleclassroom className="text-blue-800" />
                         </span>
-                        Classes & Section
+                        Classes & Section *
                       </CardTitle>
                       <CardDescription>
                         Your need according select{" "}
                       </CardDescription>
+                      {errors.classes && (
+                        <p className="text-red-500 text-sm mt-1">{errors.classes}</p>
+                      )}
+                      {errors.sections && (
+                        <p className="text-red-500 text-sm mt-1">{errors.sections}</p>
+                      )}
                     </CardHeader>
                     <CardContent className="flex relative">
                       <div>
@@ -1204,7 +967,7 @@ export default function CustomizedSteppers() {
                           Select Classes
                         </label>
                         <div className="mt-2 bg-[#ebebebe9] flex items-center flex-col w-40 py-3 rounded-xl ">
-                          {classes.map((cls) => (
+                          {allClasses.map((cls) => (
                             <button
                               key={cls}
                               type="button"
@@ -1228,7 +991,7 @@ export default function CustomizedSteppers() {
                               Select Sections
                             </label>
                             <div className="">
-                              {sections.map((section, index) => (
+                              {allSections.map((section, index) => (
                                 <motion.div
                                   key={section}
                                   className="flex items-center"
@@ -1236,17 +999,11 @@ export default function CustomizedSteppers() {
                                   animate={{ opacity: 1, scale: 1 }}
                                   transition={{
                                     duration: 0.6,
-                                    delay: index * 0.2, // Delay each section animation
+                                    delay: index * 0.2,
                                   }}
                                 >
-                                  <div
-                                    key={section}
-                                    className="flex items-center"
-                                  >
-                                    {/* Connecting Line */}
+                                  <div className="flex items-center">
                                     <div className="w-10 h-[2px] bg-gray-300 mx-4"></div>
-
-                                    {/* Section Button */}
                                     <button
                                       type="button"
                                       onClick={() => toggleSection(section)}
@@ -1257,8 +1014,6 @@ export default function CustomizedSteppers() {
                                       }`}
                                     >
                                       {section}
-
-                                      {/* Conditional Checkmark Display */}
                                       {selectedSections.includes(section) && (
                                         <motion.div
                                           initial={{ scale: 0, opacity: 0 }}
@@ -1303,8 +1058,6 @@ export default function CustomizedSteppers() {
                 </div>
               </div>
               <div className="relative flex items-center space-x-4 ">
-                {/* Decorative Dots */}
-
                 <div className="absolute -bottom-6 -left-4">
                   <img
                     src={dot}
@@ -1313,18 +1066,20 @@ export default function CustomizedSteppers() {
                   />
                 </div>
 
-                {/* Card */}
                 <div className="relative z-10">
                   <Card>
                     <CardHeader>
                       <div className="relative max-w-[450px]">
                         <img src={banner} alt="" className="w-full" />
                         <div className="absolute top-0 left-0 right-0 bottom-0 flex flex-col items-center justify-center">
-                          <h1 className="text-white text-xl">Reword</h1>
+                          <h1 className="text-white text-xl">Reword *</h1>
                           <p className="text-gray-400 flex items-center gap-2 text-sm">
                             Add the point{" "}
                             <RiCopperCoinFill className="text-yellow-500" />
                           </p>
+                          {errors.rewardPoints && (
+                            <p className="text-red-500 text-sm mt-1">{errors.rewardPoints}</p>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
@@ -1369,7 +1124,6 @@ export default function CustomizedSteppers() {
                             ))}
                             <div className="p-2">
                               {!showInput ? (
-                                // Plus Icon (Click to reveal input)
                                 <Button
                                   variant="ghost"
                                   onClick={() => setShowInput(true)}
@@ -1397,6 +1151,8 @@ export default function CustomizedSteppers() {
                                       setInputValue(e.target.value)
                                     }
                                     className="mb-2"
+                                    type="number"
+                                    min="1"
                                   />
                                   <Button
                                     onClick={handleAddItem}
@@ -1426,25 +1182,6 @@ export default function CustomizedSteppers() {
                           className="w-full sm:w-96 p-4 border border-gray-100 rounded-lg shadow-md resize-none focus:outline-none bg-slate-200 "
                           placeholder="Terms and Conditions will appear here..."
                         />
-                        {/* <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                        >
-                          <Button
-                            onClick={handleTypewriting}
-                            disabled={isTyping}
-                            style={{
-                              backgroundColor: isTyping ? "gray" : "#0056d2",
-                              color: "white",
-                              borderRadius: "100px",
-                              textTransform: "none",
-                              fontSize: "11px",
-                            }}
-                          >
-                            {isTyping ? "Typing..." : "Auto-Fill Terms"}
-                          </Button>
-                        </motion.div> */}
                       </div>
                     </CardContent>
                     <CardFooter></CardFooter>
@@ -1453,6 +1190,16 @@ export default function CustomizedSteppers() {
               </div>
             </div>
           </>
+        )}
+
+        {submitMessage.text && (
+          <div className={`mt-4 p-3 rounded ${
+            submitMessage.type === 'success' 
+              ? 'bg-green-100 text-green-700' 
+              : 'bg-red-100 text-red-700'
+          }`}>
+            {submitMessage.text}
+          </div>
         )}
 
         <div className="flex justify-between mt-5">
@@ -1477,11 +1224,11 @@ export default function CustomizedSteppers() {
                 paddingRight: "20px",
               }}
               className="bg-[#0056d2] text-white normal-case gap-2"
-              onClick={handleNext}
-              disabled={activeStep === steps.length - 1}
+              onClick={activeStep === steps.length - 1 ? handleSubmitCourse : handleNext}
+              disabled={activeStep === steps.length - 1 ? isSubmitting : false}
             >
               {activeStep === steps.length - 1 ? (
-                "Finish"
+                isSubmitting ? 'Submitting...' : 'Finish'
               ) : (
                 <>
                   Continue <FaArrowRightLong />

@@ -11,8 +11,13 @@ const validateadminlogin = async (username)=>{
         
         localStorage.setItem('otp', response.data.OTP);
         localStorage.setItem('admin_id', response.data._id);
+        localStorage.setItem('Staff_name', response.data.Staff_name);
         localStorage.setItem('college_id', response.data.college);
         localStorage.setItem('profile_pic',response.data.profile_pic)
+        localStorage.setItem('staffcount',response.data.staff)
+        localStorage.setItem('studentcount',response.data.student)
+        localStorage.setItem('subjectcount',response.data.student)
+
         return true
 
         

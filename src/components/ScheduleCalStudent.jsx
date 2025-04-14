@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import CalendarHeader from "../components/schedule/CalendarHeader";
 
-import Month from "../components/schedule/Month";
+import Student_Month from "../components/schedule/Student_Month"
 import GlobalContext from "@/context/GlobalContext";
 import EventModal from "../components/schedule/EventModel";
 import { getMonth } from "@/utils/getMonth";
@@ -25,7 +25,7 @@ function App() {
           <CalendarHeader />
           <div className="flex flex-1">
             <SidebarStudent className="text-black" />
-            <Month month={currentMonth} className="text-black" />
+            <Student_Month month={currentMonth} className="text-black" />
           </div>
         </div>
       </React.Fragment>

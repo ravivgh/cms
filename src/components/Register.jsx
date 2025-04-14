@@ -126,47 +126,51 @@ const Register = () => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setExcel(file)
+      setExcel(file);
       setFileName(file.name);
     } else {
       setFileName("");
     }
     const reader = new FileReader();
-  
+
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
-      setExceldata(e.target.result)
+      setExceldata(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
-  
+
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
       const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
       console.log(jsonData);
       setFile(jsonData);
-      setFileData(sheetData); 
+      setFileData(sheetData);
     };
-  
+
     reader.readAsArrayBuffer(file);
-  }
+  };
   const handleSectionChange = (e) => {
     setSection(e.target.value);
   };
   const selectedYear = "FY";
-  const staffHandleFileUpload =async (e) => {
-      
-      const reader = new FileReader();
-  
-      reader.onload = (e) => {
+  const staffHandleFileUpload = async (e) => {
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      // Made this function async
+      try {
         const data = new Uint8Array(exceldata);
         const workbook = XLSX.read(data, { type: "array" });
-  
+
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+
         let jsonData = XLSX.utils.sheet_to_json(worksheet);
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
         setFileData(sheetData);
+
         const firstRow = header[0];
         const valuesToCheck = [
           "_id",
@@ -177,6 +181,7 @@ const Register = () => {
           "Section",
           "Subject",
         ];
+
         let col = 0;
         valuesToCheck.forEach((value) => {
           if (firstRow[col] === value) {
@@ -185,218 +190,243 @@ const Register = () => {
             col--;
           }
         });
+
         if (col === 7) {
           jsonData = jsonData.map((staff) => ({
             ...staff,
             college_id: colleegid,
           }));
-  
-          setFile(jsonData);
-          if (insertstaff(jsonData)) {
 
+          setFile(jsonData);
+
+          try {
+            const staffs = await insertstaff(jsonData); // Fixed await issue
+
+            if (staffs) {
+              setIsDialogOpen(true);
+              setDialogMessage("College Registration Successful");
+              setCountdown(3); // Start countdown
+
+              // Countdown logic before navigation
+              let counter = 3;
+              const timer = setInterval(() => {
+                counter -= 1;
+                setCountdown(counter);
+                if (counter === 0) {
+                  clearInterval(timer);
+                  navigate("/login/admin"); // Navigate after countdown
+                }
+              }, 1000);
+            } else {
+              setIsDialogOpen(true);
+              setDialogMessage("Error while Importing Staff Data");
+              setStatus("Error");
+            }
+          } catch (error) {
+            console.error("Error inserting staff data:", error);
             setIsDialogOpen(true);
-            setDialogMessage("College Registration Successfull")
-            navigate("/login/admin")
-          } else {
-            setIsDialogOpen(true);
-            setDialogMessage("Error while Importing Staff Data Successfull");
+            setDialogMessage("Error while processing staff data");
             setStatus("Error");
           }
         } else {
           alert("Staff Excel Should be in Format");
         }
-      };
-  
-      reader.readAsArrayBuffer(excel);
-    };
-  
-    const sendmail = async (email, name) => {
-      try {
-        const response = await axios.post(
-          "http://localhost:5472/services/sendmail",
-          {
-            Sendto: email,
-            sendtoname: name,
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-  
-        if (response.status === 200) {
-          return true;
-        } else {
-          console.error(`Unexpected status code: ${response.status}`);
-          return false;
-        }
       } catch (error) {
-        // Log the error from the HTTP request
-        console.error("Error sending email:", error);
+        console.error("Error parsing Excel file:", error);
+        alert("Invalid Excel file. Please upload a valid file.");
+      }
+    };
+
+    reader.readAsArrayBuffer(excel);
+  };
+
+  const sendmail = async (email, name) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5472/services/sendmail",
+        {
+          Sendto: email,
+          sendtoname: name,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        return true;
+      } else {
+        console.error(`Unexpected status code: ${response.status}`);
         return false;
       }
-    };
-    const studenthandleFileUpload = (e) => {
-    
-      const reader = new FileReader();
-    
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(exceldata);
-          const workbook = XLSX.read(data, { type: "array" });
-    
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          let jsonData = XLSX.utils.sheet_to_json(worksheet);
-          let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    
-          // Check if header is defined and not empty
-          if (!header || header.length === 0) {
-            alert("The Excel file is empty or improperly formatted.");
-            return;
-          }
-    
-          const firstRow = header[0];
-          const requiredHeaders = [
-            "_id",
-            "Student_Name",
-            "Class",
-            "Section",
-            "DOB",
-            "Email",
-            "Mobile",
-          ];
-    
-          // Check if all required headers are present
-          const isValidFormat = requiredHeaders.every((header) =>
-            firstRow.includes(header)
-          );
-    
-          if (isValidFormat) {
-            // Add college_id to each student object
-            jsonData = jsonData.map((student) => ({
-              ...student,
-              college_id: colleegid, // Ensure colleegid is defined
-            }));
-    
-            // Insert students into the database
-            if (insertstudents(jsonData)) {
-              handleNext(); // Move to the next step
-              setStatus("Success"); // Update status
+    } catch (error) {
+      // Log the error from the HTTP request
+      console.error("Error sending email:", error);
+      return false;
+    }
+  };
+  const studenthandleFileUpload = async (e) => {
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      // Marked function as async
+      try {
+        const data = new Uint8Array(exceldata); // Keeping reference the same
+        const workbook = XLSX.read(data, { type: "array" });
+
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        let jsonData = XLSX.utils.sheet_to_json(worksheet);
+        let header = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        if (!header || header.length === 0) {
+          alert("The Excel file is empty or improperly formatted.");
+          return;
+        }
+
+        const firstRow = header[0];
+        const requiredHeaders = [
+          "_id",
+          "Student_Name",
+          "Class",
+          "Section",
+          "DOB",
+          "Email",
+          "Mobile",
+        ];
+
+        // Check if all required headers are present
+        const isValidFormat = requiredHeaders.every((header) =>
+          firstRow.includes(header)
+        );
+
+        if (isValidFormat) {
+          jsonData = jsonData.map((student) => ({
+            ...student,
+            college_id: colleegid, // Ensure colleegid is defined
+          }));
+
+          try {
+            const students = await insertstudents(jsonData); // Fixed await issue
+
+            if (students) {
+              handleNext();
+              setStatus("Success");
             }
-          } else {
-            alert("Excel file should be in the correct format.");
+          } catch (dbError) {
+            console.error("Error inserting students:", dbError);
+            alert("Failed to upload student data.");
           }
-        } catch (error) {
-          console.error("Error parsing Excel file:", error);
-          alert("Invalid Excel file. Please upload a valid file.");
+        } else {
+          alert("Excel file should be in the correct format.");
         }
-      };
-    
-      reader.onerror = (error) => {
-        console.error("Error reading file:", error);
-        alert("Failed to read the file. Please try again.");
-      };
-    
-      reader.readAsArrayBuffer(excel);
-    };
-    const sendtomongo = async () => {
-      try {
-        let addcollege = await axios.post(
-          "http://localhost:5472/services/insert",
-          { colname: collegeName, addr: address, collename: "College_Master" },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (addcollege.data) {
-          setCollegId(addcollege.data.college_id);
-          handleNext();
-        }
-      } catch (err) {
-        console.log(err);
+      } catch (error) {
+        console.error("Error parsing Excel file:", error);
+        alert("Invalid Excel file. Please upload a valid file.");
       }
     };
-    const register_admin = async () => {
-      try {
-        let user_info = await axios.post(
-          "http://localhost:5472/services/regadmin",
-          {
-            Sname: name,
-            Password: password,
-            Email: email,
-            Mobile: parseInt(phoneNumber),
-            college_id: colleegid,
-            collecname: "Admin_users",
+
+    reader.readAsArrayBuffer(excel);
+  };
+
+  const sendtomongo = async () => {
+    try {
+      let addcollege = await axios.post(
+        "http://localhost:5472/services/insert",
+        { colname: collegeName, addr: address, collename: "College_Master" },
+        {
+          headers: {
+            "Content-Type": "application/json",
           },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (user_info.data) {
-          setStatus("Success");
-          handleNext();
-        } else {
-          setStatus("Error");
         }
-      } catch (err) {
-        console.log(err);
+      );
+      if (addcollege.data) {
+        setCollegId(addcollege.data.college_id);
+        handleNext();
       }
-    };
-    const insertstudents = async (studentdata) => {
-      try {
-        let addstudent = await axios.post(
-          "http://localhost:5472/services/addstudent",
-          { studentdata, collecname: "Student_Master" },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-  
-        if (addstudent) {
-          return true;
-          console.log(addstudent);
-        } else {
-          console.log("Error");
-          setStatus("Error");
-          return false;
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const register_admin = async () => {
+    try {
+      let user_info = await axios.post(
+        "http://localhost:5472/services/regadmin",
+        {
+          Sname: name,
+          Password: password,
+          Email: email,
+          Mobile: parseInt(phoneNumber),
+          college_id: colleegid,
+          collecname: "Admin_users",
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
-      } catch (err) {
-        console.log(err);
+      );
+      if (user_info.data) {
+        setStatus("Success");
+        handleNext();
+      } else {
+        setStatus("Error");
       }
-    };
-    const insertstaff = async (staffdata) => {
-      
-  
-      try {
-        let addstaff = await axios.post(
-          "http://localhost:5472/services/addstaff",
-          { staffdata, collecname: "Staff_Master" },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-  
-        if (addstaff) {
-          return true;
-        } else {
-          console.log("Error");
-          return false;
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const insertstudents = async (studentdata) => {
+    try {
+      let addstudent = await axios.post(
+        "http://localhost:5472/services/addstudentimport",
+        { studentdata, collecname: "Student_Master" },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
-      } catch (err) {
-        console.log(err);
+      );
+
+      if (addstudent) {
+        return true;
+        console.log(addstudent);
+      } else {
+        console.log("Error");
+        setStatus("Error");
+        return false;
       }
-    };
-  
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const insertstaff = async (staffdata) => {
+    try {
+      let addstaff = await axios.post(
+        "http://localhost:5472/services/addstaff",
+        { staffdata, collecname: "Staff_Master" },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (addstaff) {
+        sendmail(email,name)
+        return true;
+      } else {
+        console.log("Error");
+        return false;
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const handleSubmit = () => {
     let message = "";
     switch (selectedOption) {
@@ -421,7 +451,7 @@ const Register = () => {
       setCountdown(counter);
       if (counter === 0) {
         clearInterval(timer);
-        navigate("/login/admin"); 
+        navigate("/login/admin");
       }
     }, 1000);
     // if (subjectName.trim()) {
@@ -1074,7 +1104,7 @@ const Register = () => {
                         </div>
                       </div>
                     )}
-                    
+
                     {step === 2 && (
                       <div className="text-black">
                         {selectedOption === "admin" && (
@@ -1899,21 +1929,27 @@ const Register = () => {
                   {step === 2 && (
                     <div className="text-gray-500 py-5 px-5">
                       <h1 className="text-[#3c3c3c] text-md">
-                        In the College Management System, admins register
-                        manually, while student & faculty data is efficiently
-                        imported via Excel files for bulk management.
+                        Admin, please{" "}
+                        <span className="font-bold">
+                          enter your personal information
+                        </span>{" "}
+                        to <span className="font-bold">set up </span>
+                        your profile within the system. This information will
+                        help identify you and allow you to manage administrative
+                        tasks effectively. Make sure to provide accurate details
+                        for a smooth experience.
                       </h1>
                     </div>
                   )}
                 </div>
-                {step === 3 && (
+                {/* {step === 3 && (
                   <img
                     className="w-full h-auto"
                     src={adminDetails}
                     alt="Description of the image"
                   />
-                )}
-                <div className="bg-[#dce7fe] rounded-b-3xl">
+                )} */}
+                {/* <div className="bg-[#dce7fe] rounded-b-3xl">
                   {step === 3 && (
                     <div className="text-gray-500 py-5 px-5">
                       <h1 className="text-[#3c3c3c] text-md">
@@ -1929,8 +1965,8 @@ const Register = () => {
                       </h1>
                     </div>
                   )}
-                </div>
-                {step === 4 && (
+                </div> */}
+                {step === 3 && (
                   <img
                     className="w-full h-auto"
                     src={excelImage}
@@ -1938,7 +1974,7 @@ const Register = () => {
                   />
                 )}
                 <div className="bg-[#dce7fe] rounded-b-3xl">
-                  {step === 4 && (
+                  {step === 3 && (
                     <div className="text-gray-500 py-5 px-5">
                       <h1 className="text-[#3c3c3c] text-md">
                         The Admin{" "}
@@ -1954,7 +1990,7 @@ const Register = () => {
                     </div>
                   )}
                 </div>
-                {step === 5 && (
+                {step === 4 && (
                   <img
                     className="w-full h-auto"
                     src={excelImage2}
@@ -1962,7 +1998,7 @@ const Register = () => {
                   />
                 )}
                 <div className="bg-[#dce7fe] rounded-b-3xl">
-                  {step === 5 && (
+                  {step === 4 && (
                     <div className="text-gray-500 py-5 px-5">
                       <h1 className="text-[#3c3c3c] text-md">
                         The Admin{" "}

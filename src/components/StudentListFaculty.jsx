@@ -123,7 +123,7 @@ export const columns = [
   },
 ];
 
-function DataTableDemo() {
+function StudentListFaculty() {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [columnVisibility, setColumnVisibility] = useState({});
@@ -131,8 +131,7 @@ function DataTableDemo() {
   const location = useLocation();
   const receivedData = location.state;
   const subject = receivedData?.subject;
-  const Class = receivedData?.class;
-  const section = receivedData?.section;
+  const staff = receivedData?.staff;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -154,8 +153,8 @@ function DataTableDemo() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              class: Class,
-              section: section,
+              
+              staff: staff,
               subject: subject,
             }),
           }
@@ -463,4 +462,4 @@ function DataTableDemo() {
   );
 }
 
-export default DataTableDemo;
+export default StudentListFaculty;

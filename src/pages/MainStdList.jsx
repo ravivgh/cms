@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import StudentList from "../components/StudentList";
+import StudentListFaculty from "@/components/StudentListFaculty";
 import FacultySidebar from "@/components/FacultySidebar";
 const MainStdList = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -22,7 +22,7 @@ const MainStdList = () => {
             width: isSidebarOpen ? "calc(100% - 12.5rem)" : "calc(100% - 5rem)",
           }}
         >
-          <StudentList />
+          <StudentListFaculty />
         </main>
       </div>
     </>

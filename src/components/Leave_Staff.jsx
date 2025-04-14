@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const FacultyLogin = ({
+const FacultyLeave = ({
   numberOfTeeth = 120,
   animationDuration = 5000,
   facultyName = localStorage.getItem("Student_Name") || localStorage.getItem("staff_name"),
@@ -135,14 +135,14 @@ const FacultyLogin = ({
     setState((prev) => ({ ...prev, submissionStatus: "submitting" }));
 
     const leaveData = {
-      sid: parseInt(localStorage.getItem("student_id")),
+      sid: parseInt(localStorage.getItem("staff_id")),
       from_date: state.leaveData.startDate,
       to_date: state.leaveData.endDate,
       reason: state.leaveData.reason,
       college_id: parseInt(localStorage.getItem("college_id")),
     }
     try {
-      const response = await fetch("http://localhost:5472/services/addleaverequest", {
+      const response = await fetch("http://localhost:5472/services/addleaveforstaff", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -433,4 +433,4 @@ const FacultyLogin = ({
   );
 };
 
-export default FacultyLogin;
+export default FacultyLeave;

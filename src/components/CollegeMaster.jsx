@@ -52,7 +52,7 @@ const CollegeMaster = () => {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const maxFields = 5;
-
+  const [holidaysFromApi, setHolidaysFromApi] = useState([]);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -60,6 +60,32 @@ const CollegeMaster = () => {
     localStorage.setItem("reminder", JSON.stringify(reminder));
     localStorage.setItem("weekends", JSON.stringify(weekends));
   }, [holidayFields, reminder, weekends]);
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5472/services/getholidays",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setHolidaysFromApi(data);
+        } else {
+          console.error("Failed to fetch holidays:", response.status);
+        }
+      } catch (error) {
+        console.error("Error fetching holidays:", error);
+      }
+    };
+
+    fetchHolidays();
+  }, []);
 
   const addToHistory = (newState) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -181,12 +207,6 @@ const CollegeMaster = () => {
 
   const validateHolidayFields = () =>
     holidayFields.every((field) => field.name && field.date);
-  const validateReminder = () =>
-    reminder.feesAmount &&
-    reminder.durationDays &&
-    reminder.dueDate &&
-    Number(reminder.feesAmount) > 0 &&
-    Number(reminder.durationDays) > 0;
 
   const saveConfiguration = async () => {
     setIsSaving(true);
@@ -202,18 +222,35 @@ const CollegeMaster = () => {
         setIsSaving(false);
         return;
       }
+
+      const holidaysToSave = holidayFields.map((field) => ({
+        name: field.name,
+        date: field.date.toLocaleDateString("en-GB"),
+      }));
+
+      try {
+        const response = await fetch(
+          "http://localhost:5472/services/addholidays",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ holidays: holidaysToSave }),
+          }
+        );
+
+        if (response.ok) {
+          toast.success("Weekend and Holiday Configuration Saved!");
+        } else {
+          const errorData = await response.json();
+          toast.error(errorData.message || "Failed to save holidays.");
+        }
+      } catch (error) {
+        console.error("Error saving holidays:", error);
+        toast.error("An unexpected error occurred.");
+      }
     }
-    if (activeSection === "reminder" && !validateReminder()) {
-      toast.error("Please fill in all reminder fields with valid values");
-      setIsSaving(false);
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success(
-      activeSection === "weekend"
-        ? "Weekend and Holiday Configuration Saved!"
-        : "Reminder Saved!"
-    );
     setIsSaving(false);
   };
 
@@ -245,15 +282,18 @@ const CollegeMaster = () => {
       const lines = csv.split("\n").slice(1);
       const newHolidays = lines
         .map((line) => {
-          const [name, date, recurring] = line.split(",");
+          const [name, From_Date, To_Date] = line.split(",");
+          const trimmedFromDate = From_Date ? From_Date.trim() : null;
+          const trimmedToDate = To_Date ? To_Date.trim() : null;
+
           return {
             id: holidayFields.length + 1 + lines.indexOf(line),
-            name,
-            date: date ? new Date(date) : null,
-            recurring: recurring?.trim().toLowerCase() === "true",
+            name: name ? name.trim() : "",
+            date: trimmedFromDate ? new Date(trimmedFromDate) : null,
           };
         })
         .filter((h) => h.name && h.date);
+
       if (holidayFields.length + newHolidays.length <= maxFields) {
         setHolidayFields([...holidayFields, ...newHolidays]);
         addToHistory({
@@ -268,20 +308,17 @@ const CollegeMaster = () => {
     };
     reader.readAsText(file);
   };
-
   const downloadPDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     let yOffset = 20;
 
-    // Title
     doc.setFontSize(18);
     doc.text("Academic Calendar Configuration", pageWidth / 2, yOffset, {
       align: "center",
     });
     yOffset += 15;
 
-    // Weekends Section
     doc.setFontSize(14);
     doc.text("Weekends", 20, yOffset);
     yOffset += 10;
@@ -292,14 +329,9 @@ const CollegeMaster = () => {
       yOffset
     );
     yOffset += 10;
-    doc.text(
-      `Sunday: ${weekends.sunday ? "Working" : "Non-Working"}`,
-      20,
-      yOffset
-    );
+    doc.text(`Sunday: ${weekends.sunday ? "Working" : "Non-Working"}`, 20, yOffset);
     yOffset += 15;
 
-    // Holidays Section
     doc.setFontSize(14);
     doc.text("Holidays", 20, yOffset);
     yOffset += 10;
@@ -326,7 +358,6 @@ const CollegeMaster = () => {
     }
     yOffset += 15;
 
-    // Reminder Section
     doc.setFontSize(14);
     doc.text("Reminder", 20, yOffset);
     yOffset += 10;
@@ -337,11 +368,7 @@ const CollegeMaster = () => {
       reminder.dueDate instanceof Date &&
       !isNaN(reminder.dueDate)
     ) {
-      const reminderText = `Fees of $${
-        reminder.feesAmount
-      } due on ${reminder.dueDate.toLocaleDateString()} (in ${
-        reminder.durationDays
-      } days, ${reminder.frequency})`;
+      const reminderText = `Fees of $${reminder.feesAmount} due on ${reminder.dueDate.toLocaleDateString()} (in ${reminder.durationDays} days, ${reminder.frequency})`;
       doc.text(reminderText, 20, yOffset);
     } else {
       doc.text("No reminder set", 20, yOffset);
@@ -377,6 +404,43 @@ const CollegeMaster = () => {
       (field.date && field.date.toLocaleDateString().includes(searchQuery))
   );
 
+  const getHolidayName = (date) => {
+    const holiday = holidaysFromApi.find(
+      (h) => new Date(h.date.split("/").reverse().join("-")).toDateString() === date.toDateString()
+    );
+    return holiday ? holiday.name : null;
+  };
+
+  const dayContent = (date) => {
+    const holidayName = getHolidayName(date);
+    if (holidayName) {
+      return (
+        <div
+          className="relative"
+          title={holidayName}
+        >
+          <div className="absolute inset-0 bg-red-200 rounded-full flex items-center justify-center">
+            {date.getDate()}
+          </div>
+        </div>
+      );
+    }
+    return date.getDate();
+  };
+
+  const modifiers = {
+    holidays: holidaysFromApi.map(holiday => new Date(holiday.date.split("/").reverse().join("-"))),
+    reminders:
+      reminder.dueDate instanceof Date && !isNaN(reminder.dueDate)
+        ? [reminder.dueDate]
+        : [],
+  };
+
+  const modifiersStyles = {
+    holidays: { backgroundColor: "#ffe0e0", color: "#000" },
+    reminders: { backgroundColor: "#cce5ff", color: "#000" },
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <Toaster position="top-right" />
@@ -407,71 +471,17 @@ const CollegeMaster = () => {
             >
               Weekend Configuration
             </Button>
-            <Button
-              onClick={() => setActiveSection("reminder")}
-              className={`${
-                activeSection === "reminder"
-                  ? "bg-black text-white"
-                  : "bg-transparent text-gray-700 border border-black"
-              } hover:text-white rounded-full`}
-            >
-              Set Reminder
-            </Button>
-            <Button
-              onClick={() => setActiveSection("summary")}
-              className={`${
-                activeSection === "summary"
-                  ? "bg-black text-white"
-                  : "bg-transparent text-gray-700 border border-black"
-              } hover:text-white rounded-full`}
-            >
-              Summary
-            </Button>
-            <Button
-              onClick={() => setActiveSection("calendar")}
-              className={`${
-                activeSection === "calendar"
-                  ? "bg-black text-white"
-                  : "bg-transparent text-gray-700 border border-black"
-              } hover:text-white rounded-full`}
-            >
-              Calendar Preview
-            </Button>
+
+            
           </div>
 
           {activeSection === "weekend" && (
             <>
               <div className="pb-6 border-b border-gray-200">
-                <h2 className="text-xl font-medium text-gray-800 mb-4">
-                  Weekend Configuration
-                </h2>
+                
                 <div className="grid grid-cols-2 gap-6 max-w-md">
-                  <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
-                    <Checkbox
-                      id="saturday"
-                      checked={weekends.saturday}
-                      onCheckedChange={() => handleWeekendChange("saturday")}
-                    />
-                    <label
-                      htmlFor="saturday"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Saturday Working Day
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
-                    <Checkbox
-                      id="sunday"
-                      checked={weekends.sunday}
-                      onCheckedChange={() => handleWeekendChange("sunday")}
-                    />
-                    <label
-                      htmlFor="sunday"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Sunday Working Day
-                    </label>
-                  </div>
+                  
+                  
                 </div>
               </div>
 
@@ -561,10 +571,7 @@ const CollegeMaster = () => {
                                       placeholder="Holiday Name"
                                       value={field.name}
                                       onChange={(e) =>
-                                        handleNameChange(
-                                          field.id,
-                                          e.target.value
-                                        )
+                                        handleNameChange(field.id, e.target.value)
                                       }
                                       className="w-full text-black"
                                     />
@@ -828,29 +835,7 @@ const CollegeMaster = () => {
 
           {activeSection === "calendar" && (
             <div className="pb-6">
-              <h2 className="text-xl font-medium text-gray-800 mb-4">
-                Calendar Preview
-              </h2>
-              <Calendar
-                mode="single"
-                className="rounded-md border text-black"
-                modifiers={{
-                  holidays: holidayFields
-                    .map((field) => field.date)
-                    .filter((d) => d instanceof Date && !isNaN(d)),
-                  reminders:
-                    reminder.dueDate instanceof Date && !isNaN(reminder.dueDate)
-                      ? [reminder.dueDate]
-                      : [],
-                }}
-                modifiersStyles={{
-                  holidays: { backgroundColor: "#ffcccc", color: "#000" },
-                  reminders: { backgroundColor: "#cce5ff", color: "#000" },
-                }}
-              />
-              <p className="text-sm text-gray-600 mt-2">
-                Red: Holidays | Blue: Reminders
-              </p>
+              
             </div>
           )}
         </div>

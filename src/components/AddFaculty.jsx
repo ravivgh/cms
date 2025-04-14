@@ -57,6 +57,9 @@ const AdvancedFacultyManagement = () => {
   const [facultyData, setFacultyData] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
+  const [importError, setImportError] = useState(null);
+  const [importDuplicateErrors, setImportDuplicateErrors] = useState([]);
 
   const sections = {
     FY: ["FY-A", "FY-B", "FY-C", "FY-D", "FY-E"],
@@ -146,6 +149,7 @@ const AdvancedFacultyManagement = () => {
 
   const insertstudents = async (studentdata) => {
     try {
+      setImportStatus("processing");
       let addstudent = await axios.post(
         "http://localhost:5472/services/addstaffimport",
         { studentdata, collecname: "Staff_Master" },
@@ -157,21 +161,22 @@ const AdvancedFacultyManagement = () => {
       );
 
       if (addstudent.status === 201) {
-        setImportStatus("Success");
-        setFacultyData((prev) => [...prev, ...studentdata]);
         setImportStatus("success");
+        setFacultyData((prev) => [...prev, ...studentdata]);
         setTimeout(() => {
           setImportStatus(null);
           setIsImportModalOpen(false);
           setError(null);
+          setImportError(null);
           setImportDuplicateErrors([]);
         }, 2000);
       } else if (addstudent.status === 409) {
         setImportStatus("error");
         setImportDuplicateErrors(addstudent.data.errors);
+        setImportError("Some records failed due to duplicates.");
       } else {
         setImportStatus("error");
-        setImportError("Failed to add Staff.");
+        setImportError("Failed to import staff data.");
       }
     } catch (err) {
       console.error("Error during staff import:", err);
@@ -199,12 +204,61 @@ const AdvancedFacultyManagement = () => {
     fetchSubjects();
   }, []);
 
+  const validateForm = () => {
+    let isValid = true;
+    const errors = {};
+
+    if (!Staff_name.trim()) {
+      errors.Staff_name = "Name is required";
+      isValid = false;
+    }
+
+    if (!Assigned_Class.trim()) {
+      errors.Assigned_Class = "Assigned Class is required";
+      isValid = false;
+    }
+
+    if (!Section.trim()) {
+      errors.Section = "Section is required";
+      isValid = false;
+    }
+
+    if (!Subject.trim()) {
+      errors.Subject = "Subject is required";
+      isValid = false;
+    }
+
+    if (!email.trim()) {
+      errors.email = "Email is required";
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.email = "Invalid email format";
+      isValid = false;
+    }
+
+    if (!phoneNumber.trim()) {
+      errors.phoneNumber = "Phone number is required";
+      isValid = false;
+    } else if (!/^\d{10}$/.test(phoneNumber)) {
+      errors.phoneNumber = "Invalid phone number format (10 digits)";
+      isValid = false;
+    }
+
+    setValidationErrors(errors);
+    return isValid;
+  };
+
   const handleAddFaculty = async (e) => {
     e.preventDefault();
     setError("");
+    setValidationErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
 
     try {
-      const duplicateCheckResponse = await axios.post("http://localhost:5472/services/getsubjectsbystaffid", {
+      const duplicateCheckResponse = await axios.post("http://localhost:5472/services/checkstaffduplicate", {
         phone: phoneNumber,
         email: email,
       });
@@ -229,8 +283,8 @@ const AdvancedFacultyManagement = () => {
       Assigned_Class,
       Section,
       Subject,
-      email,
-      phone: phoneNumber,
+      Staff_Email: email,
+      Mob: phoneNumber,
       status: status || "active",
       image: "/api/placeholder/40/40",
     };
@@ -349,6 +403,19 @@ const AdvancedFacultyManagement = () => {
                   onChange={handleFileUpload}
                 />
               </label>
+              {importError && (
+                <p className="text-red-500 text-sm mt-2">{importError}</p>
+              )}
+              {importDuplicateErrors && importDuplicateErrors.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Import Errors</h4>
+                  <ul className="list-disc list-inside text-sm text-red-500">
+                    {importDuplicateErrors.map((err, index) => (
+                      <li key={index}>{err.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="mt-6">
@@ -358,11 +425,13 @@ const AdvancedFacultyManagement = () => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600">Required columns:</p>
                 <ul className="text-sm text-gray-600 mt-2 list-disc list-inside">
-                  <li>Name (Full name of faculty member)</li>
-                  <li>Department (Must match existing departments)</li>
+                  <li>_id (Unique Identifier)</li>
+                  <li>Staff_name (Full name of faculty member)</li>
+                  <li>Mob (Valid 10-digit phone number)</li>
+                  <li>Staff_Email (Valid email address)</li>
+                  <li>Assigned_Class</li>
+                  <li>Section</li>
                   <li>Subject (Teaching subject)</li>
-                  <li>Email (Valid email address)</li>
-                  <li>Phone (Valid phone number)</li>
                 </ul>
               </div>
             </div>
@@ -514,6 +583,8 @@ const AdvancedFacultyManagement = () => {
                         value={Staff_name}
                         onChange={(e) => setStaffName(e.target.value)}
                         placeholder="Enter here"
+                        error={!!validationErrors.Staff_name}
+                        helperText={validationErrors.Staff_name}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             color: "black",
@@ -533,6 +604,8 @@ const AdvancedFacultyManagement = () => {
                         value={Assigned_Class}
                         onChange={(e) => setAssignedClass(e.target.value)}
                         placeholder="Enter here"
+                        error={!!validationErrors.Assigned_Class}
+                        helperText={validationErrors.Assigned_Class}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             color: "black",
@@ -552,6 +625,8 @@ const AdvancedFacultyManagement = () => {
                         value={Section}
                         onChange={(e) => setSection(e.target.value)}
                         placeholder="Enter here"
+                        error={!!validationErrors.Section}
+                        helperText={validationErrors.Section}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             color: "black",
@@ -571,6 +646,8 @@ const AdvancedFacultyManagement = () => {
                         value={Subject}
                         onChange={(e) => setSubject(e.target.value)}
                         placeholder="Enter here"
+                        error={!!validationErrors.Subject}
+                        helperText={validationErrors.Subject}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             color: "black",
@@ -590,6 +667,8 @@ const AdvancedFacultyManagement = () => {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Enter here"
+                        error={!!validationErrors.email}
+                        helperText={validationErrors.email}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             color: "black",
@@ -609,6 +688,8 @@ const AdvancedFacultyManagement = () => {
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
                         placeholder="Enter here"
+                        error={!!validationErrors.phoneNumber}
+                        helperText={validationErrors.phoneNumber}
                         sx={{
                           "& .MuiOutlinedInput-root": {
                             color: "black",
